@@ -1,0 +1,165 @@
+let di = SPIInterface::new(display_spi, a0);
+    |              ^^^^^^^^^^^^ unsatisfied trait bound
+    |
+    = help: within `SpiDeviceWithConfig<'_, NoopRawMutex, Spi<'_, SPI0, ...>, ...>`, the trait `SetConfig` is not implemented for `embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>`
+note: there are multiple different versions of crate `embassy_embedded_hal` in the dependency graph
+   --> /Users/declan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embassy-embedded-hal-0.6.0/src/lib.rs:21:1
+    |
+ 21 | pub trait SetConfig {
+    | ^^^^^^^^^^^^^^^^^^^ this is the required trait
+    |
+   ::: src/main.rs:11:5
+    |
+ 11 | use embassy_rp::{gpio::Output, spi, usb::Out};
+    |     ---------- one version of crate `embassy_embedded_hal` used here, as a dependency of crate `embassy_rp`
+...
+ 15 | use embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig;
+    |     -------------------- one version of crate `embassy_embedded_hal` used here, as a direct dependency of the current crate
+    |
+   ::: /Users/declan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embassy-rp-0.9.0/src/spi.rs:44:1
+    |
+ 44 | pub struct Spi<'d, T: Instance, M: Mode> {
+    | ---------------------------------------- this type doesn't implement the required trait
+    |
+   ::: /Users/declan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embassy-embedded-hal-0.5.0/src/lib.rs:21:1
+    |
+ 21 | pub trait SetConfig {
+    | ------------------- this is the found trait
+    = help: you can use `cargo tree` to explore your dependency tree
+note: required because it appears within the type `SpiDeviceWithConfig<'_, NoopRawMutex, Spi<'_, SPI0, ...>, ...>`
+   --> /Users/declan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embassy-embedded-hal-0.6.0/src/shared_bus/blocking/spi.rs:99:12
+    |
+ 99 | pub struct SpiDeviceWithConfig<'a, M: RawMutex, BUS: SetConfig, CS> {
+    |            ^^^^^^^^^^^^^^^^^^^
+note: required by an implicit `Sized` bound in `SPIInterface`
+   --> /Users/declan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/display-interface-spi-0.5.0/src/lib.rs:111:25
+    |
+111 | pub struct SPIInterface<SPI, DC> {
+    |                         ^^^ required by the implicit `Sized` requirement on this type parameter in `SPIInterface`
+    = note: the full name for the type has been written to '/Users/declan/Documents/code/dv_26_4/target/thumbv8m.main-none-eabihf/debug/deps/dv_26_4-722efded8d751b07.long-type-17994607977438878471.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: the trait bound `embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>: SetConfig` is not satisfied
+  --> src/main.rs:67:14
+   |
+67 |     let di = SPIInterface::new(display_spi, a0);
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `SetConfig` is not implemented for `embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>`
+   |
+note: there are multiple different versions of crate `embassy_embedded_hal` in the dependency graph
+  --> /Users/declan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embassy-embedded-hal-0.6.0/src/lib.rs:21:1
+   |
+21 | pub trait SetConfig {
+   | ^^^^^^^^^^^^^^^^^^^ this is the required trait
+   |
+  ::: src/main.rs:11:5
+   |
+11 | use embassy_rp::{gpio::Output, spi, usb::Out};
+   |     ---------- one version of crate `embassy_embedded_hal` used here, as a dependency of crate `embassy_rp`
+...
+15 | use embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig;
+   |     -------------------- one version of crate `embassy_embedded_hal` used here, as a direct dependency of the current crate
+   |
+  ::: /Users/declan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embassy-rp-0.9.0/src/spi.rs:44:1
+   |
+44 | pub struct Spi<'d, T: Instance, M: Mode> {
+   | ---------------------------------------- this type doesn't implement the required trait
+   |
+  ::: /Users/declan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embassy-embedded-hal-0.5.0/src/lib.rs:21:1
+   |
+21 | pub trait SetConfig {
+   | ------------------- this is the found trait
+   = help: you can use `cargo tree` to explore your dependency tree
+note: required by a bound in `embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig`
+  --> /Users/declan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embassy-embedded-hal-0.6.0/src/shared_bus/blocking/spi.rs:99:54
+   |
+99 | pub struct SpiDeviceWithConfig<'a, M: RawMutex, BUS: SetConfig, CS> {
+   |                                                      ^^^^^^^^^ required by this bound in `SpiDeviceWithConfig`
+
+error[E0277]: the trait bound `PIN_18: ClkPin<SPI1>` is not satisfied
+   --> src/main.rs:79:45
+    |
+ 79 |     let mut spi_bus=Spi::new_txonly(p.SPI1, clk, mosi, p.DMA_CH0, Config::default());//txonly(p.SPI1, clk, mosi, p.DMA_CH0, ...
+    |                     ---------------         ^^^ the trait `ClkPin<SPI1>` is not implemented for `PIN_18`
+    |                     |
+    |                     required by a bound introduced by this call
+    |
+    = help: the trait `ClkPin<SPI1>` is not implemented for `PIN_18`
+            but trait `ClkPin<SPI0>` is implemented for it
+    = help: for that trait implementation, expected `SPI0`, found `SPI1`
+note: required by a bound in `embassy_rp::spi::Spi::<'d, T, embassy_rp::spi::Async>::new_txonly`
+   --> /Users/declan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embassy-rp-0.9.0/src/spi.rs:362:28
+    |
+360 |     pub fn new_txonly(
+    |            ---------- required by a bound in this associated function
+361 |         inner: Peri<'d, T>,
+362 |         clk: Peri<'d, impl ClkPin<T> + 'd>,
+    |                            ^^^^^^^^^ required by this bound in `Spi::<'d, T, Async>::new_txonly`
+
+error[E0277]: the trait bound `PIN_19: MosiPin<SPI1>` is not satisfied
+   --> src/main.rs:79:50
+    |
+ 79 |     let mut spi_bus=Spi::new_txonly(p.SPI1, clk, mosi, p.DMA_CH0, Config::default());//txonly(p.SPI1, clk, mosi, p.DMA_CH0, ...
+    |                     ---------------              ^^^^ the trait `MosiPin<SPI1>` is not implemented for `PIN_19`
+    |                     |
+    |                     required by a bound introduced by this call
+    |
+    = help: the trait `MosiPin<SPI1>` is not implemented for `PIN_19`
+            but trait `MosiPin<SPI0>` is implemented for it
+    = help: for that trait implementation, expected `SPI0`, found `SPI1`
+note: required by a bound in `embassy_rp::spi::Spi::<'d, T, embassy_rp::spi::Async>::new_txonly`
+   --> /Users/declan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embassy-rp-0.9.0/src/spi.rs:363:29
+    |
+360 |     pub fn new_txonly(
+    |            ---------- required by a bound in this associated function
+...
+363 |         mosi: Peri<'d, impl MosiPin<T> + 'd>,
+    |                             ^^^^^^^^^^ required by this bound in `Spi::<'d, T, Async>::new_txonly`
+
+error[E0599]: no method named `send` found for struct `embassy_rp::spi::Spi<'d, T, M>` in the current scope
+  --> src/main.rs:88:17
+   |
+88 |         spi_bus.send(&tx_buf).await.unwrap();
+   |                 ^^^^ method not found in `embassy_rp::spi::Spi<'_, SPI1, embassy_rp::spi::Async>`
+
+error[E0282]: type annotations needed
+  --> src/main.rs:88:9
+   |
+88 |         spi_bus.send(&tx_buf).await.unwrap();
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ cannot infer type
+
+error[E0277]: the trait bound `embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>: SetConfig` is not satisfied
+  --> src/main.rs:63:47
+   |
+63 |         Output::new(display_cs, Level::High), display_config);
+   |                                               ^^^^^^^^^^^^^^ the trait `SetConfig` is not implemented for `embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>`
+   |
+note: there are multiple different versions of crate `embassy_embedded_hal` in the dependency graph
+  --> /Users/declan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embassy-embedded-hal-0.6.0/src/lib.rs:21:1
+   |
+21 | pub trait SetConfig {
+   | ^^^^^^^^^^^^^^^^^^^ this is the required trait
+   |
+  ::: src/main.rs:11:5
+   |
+11 | use embassy_rp::{gpio::Output, spi, usb::Out};
+   |     ---------- one version of crate `embassy_embedded_hal` used here, as a dependency of crate `embassy_rp`
+...
+15 | use embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig;
+   |     -------------------- one version of crate `embassy_embedded_hal` used here, as a direct dependency of the current crate
+   |
+  ::: /Users/declan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embassy-rp-0.9.0/src/spi.rs:44:1
+   |
+44 | pub struct Spi<'d, T: Instance, M: Mode> {
+   | ---------------------------------------- this type doesn't implement the required trait
+   |
+  ::: /Users/declan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embassy-embedded-hal-0.5.0/src/lib.rs:21:1
+   |
+21 | pub trait SetConfig {
+   | ------------------- this is the found trait
+   = help: you can use `cargo tree` to explore your dependency tree
+
+Some errors have detailed explanations: E0277, E0282, E0425, E0433, E0599.
+For more information about an error, try `rustc --explain E0277`.
+warning: `dv_26_4` (bin "dv_26_4") generated 7 warnings
+error: could not compile `dv_26_4` (bin "dv_26_4") due to 12 previous errors; 7 warnings emitted
+declan@Declans-Mini-7 dv_26_4 % 
