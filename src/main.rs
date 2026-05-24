@@ -10,6 +10,9 @@
 mod keyboard;
 // use embassy_rp::peripherals::SPI0;
 use keyboard::Keyboard;
+// use keyboard::KeyName;
+mod calc;
+// use calc;
 
 // use st7565::modes::GraphicsMode;
 // mod screen;
@@ -22,6 +25,7 @@ use st7565::displays::DOGL128_6;
 
 // mod types;
 use core::cell::RefCell;
+use crate::calc::Calc;
 
 use defmt::*;
 use display_interface_spi::SPIInterface;
@@ -35,16 +39,17 @@ use embassy_rp::spi::{Blocking, Spi};
 use embassy_rp::spi;
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
+// use embassy_sync::channel::Channel;
 use embassy_time::Delay;
 use embassy_time::Timer;
 use embassy_rp::peripherals::{ SPI0};
 //PIN_18, PIN_19, PIN_20, PIN_21, PIN_27, PIN_28,
 
-        use embedded_graphics::prelude::*;
-        use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
-        use embedded_graphics::mono_font::{ascii::FONT_10X20, MonoTextStyle};
-        use embedded_graphics::text::Text;
-        use embedded_graphics::pixelcolor::BinaryColor;
+use embedded_graphics::prelude::*;
+use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
+use embedded_graphics::mono_font::{ascii::FONT_10X20, MonoTextStyle};
+use embedded_graphics::text::Text;
+use embedded_graphics::pixelcolor::BinaryColor;
 
 use {defmt_rtt as _, panic_probe as _};
 // use st7565::types::{BoosterRatio, PowerControlMode};
@@ -70,13 +75,10 @@ async fn main(_spawner: Spawner) {
 
     let mut reset = Output::new(reset, Level::Low);
     let a0 = Output::new(a0, Level::Low);   
-
     let display_config = spi::Config::default();
 
     let spi = Spi::new_blocking(p.SPI0, clk, mosi, miso, display_config.clone());
     let spi_bus: Mutex<NoopRawMutex, _> = Mutex::new(RefCell::new(spi));
-
-    // let display_spi: SpiDeviceWithConfig<'_, NoopRawMutex, Spi<'_, SPI0, Blocking>, Output<'_>>=SpiDeviceWithConfig::new(&spi_bus, Output::new(display_cs, Level::High), display_config);
     let display_spi=SpiDeviceWithConfig::new(&spi_bus, Output::new(display_cs, Level::High), display_config);
     let display_interface: SPIInterface<SpiDeviceWithConfig<'_, NoopRawMutex, Spi<'_, SPI0, Blocking>, Output<'_>>, Output<'_>> = SPIInterface::new(display_spi, a0);
     
@@ -88,31 +90,15 @@ async fn main(_spawner: Spawner) {
     display.flush().unwrap();
     display.set_display_on(true).unwrap();
 
-    // let mut screen = Screen::new(&mut display);
+    // let circle =Circle::new(Point::new(50, 50), 20)
+    //     .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 2));
+    // circle.draw(&mut display);
 
-    // screen.draw().unwrap();
-    let circle =Circle::new(Point::new(50, 50), 20)
-        .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 2));
-    
-    circle.draw( &mut display);
-    let rectangle =Rectangle::new(Point::new(106, 6), Size::new(20, 20))
-        .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 2));
-    rectangle.draw(&mut display);
     let font = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
+    // let _ =Text::new("123", Point::new(3, 61), font)
+    //     .draw(&mut display);
 
-    // 10x20 (which is 8x13) - good size for 4 lines, probably just a good size 
-    let _ =Text::new("11.1111345", Point::new(0, 13), font)
-        .draw(&mut display);
-    let _ =Text::new("123.4567", Point::new(0, 29), font)
-        .draw(&mut display);
-    let _ =Text::new("34.5678", Point::new(3, 45), font)
-        .draw(&mut display);
-    let _ =Text::new("12.34321", Point::new(3, 61), font)
-        .draw(&mut display);
-    // Text::new("56.789", Point::new(3, 62), font)
-    //     .draw(&mut self.display)
-    //     .unwrap();
-
+    let _ =display.flush();
 
     // Keyboard pins
     let row1 = Input::new(p.PIN_2, Pull::Down);
@@ -135,34 +121,60 @@ async fn main(_spawner: Spawner) {
     let rows = [row1, row2, row3, row4, row5, row6, row7, row8];
     let cols = [col1, col2, col3, col4, col5, col6];
 
+    unsafe {
+        let mut calc =  Calc::new();
+        
 
-    let _ =display.flush();
-    let mut keyboard = Keyboard::new(rows, cols);
-    loop {
+        let mut keyboard = Keyboard::new(rows, cols);
+        loop {
 
-        let key = keyboard.scan().await;
-        // if key.is_some() {
-            // info!("In main, Key {:?} pressed", key);
-        // }
-        Timer::after_millis(10).await; 
-        match key {
-            Some(key) => {    
-                match key {
-                    keyboard::KeyName::Number(n) => info!("Key {:?} pressed", n),
-                    _ =>   info!("In main, Key {:?} pressed", key),
-                }
-                // println!("Key {:?} pressed", k);
+
+            let key = keyboard.scan().await;
+            if key == None {
+                continue;
             }
-            _ => {  // default case, when no key is pressed
-                // error!("Error in keypress processing");
+        
+            if let Some(text) = calc.input_key(key){
+                let text = Text::new(&text, Point::new(1, 63), font);
+                info!("about to draw");
+                let _ = text.draw(&mut display); 
+                let _ = display.flush();
             }
+
+
+            Timer::after_millis(10).await; 
+
+
+
+            // match key {
+            //     Some(key) => {    
+            //         match key.index as KeyName {
+            //             keyboard::KeyName::Number1 => info!("Key 1 pressed"),
+            //             keyboard::KeyName::Number2 => info!("Key 2 pressed"),
+            //             keyboard::KeyName::Number3 => info!("Key 3 pressed"),
+            //             keyboard::KeyName::Number4 => info!("Key 4 pressed"),
+            //             keyboard::KeyName::Number5 => info!("Key 5 pressed"),
+            //             keyboard::KeyName::Number6 => info!("Key 6 pressed"),
+            //             keyboard::KeyName::Number7 => info!("Key 7 pressed"),
+            //             keyboard::KeyName::Number8 => info!("Key 8 pressed"),
+            //             keyboard::KeyName::Number9 => info!("Key 9 pressed"),
+            //             keyboard::KeyName::Number0 => info!("Key 0 pressed"),
+            //             _ =>   info!("In main, Key {:?} pressed", key),
+            //         }
+            //         // println!("Key {:?} pressed", k);
+            //     }
+            //     _ => {  // default case, when no key is pressed
+            //         // error!("Error in keypress processing");
+            //     }
+            // }
+
+
+            // let t =Text::new("888.888", Point::new(30, 30), font);
+
+            // t.draw(&mut display).unwrap();
+
         }
-
-
-        let _ =Text::new("12.34321", Point::new(3, 61), font)
-        .draw(&mut display);
-
-    }
+}
 }
 
 

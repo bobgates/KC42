@@ -45,6 +45,9 @@ pub struct Screen<'a> {
     display: &'a mut ST7565::<SPIInterface<SpiDeviceWithConfig<'a, NoopRawMutex, Spi<'a, embassy_rp::peripherals::SPI0, Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>
 }
 
+
+
+
 impl Screen<'static> {
     pub fn new(display: &'static mut ST7565<SPIInterface<SpiDeviceWithConfig<'static, NoopRawMutex, Spi<'static, embassy_rp::peripherals::SPI0, Blocking>, Output<'static>>, Output<'static>>, DOGL128_6, GraphicsMode<'static, 128, 8>, 128, 64, 8>) -> Self {
         Screen::<'static> {
