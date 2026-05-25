@@ -8,6 +8,9 @@
 // then just print them to the screen here.
 
 mod keyboard;
+use heapless::{format, String};
+use embedded_graphics::mono_font::ascii::FONT_7X13;
+use embedded_graphics::mono_font::iso_8859_2::FONT_5X8;
 // use embassy_rp::peripherals::SPI0;
 use keyboard::Keyboard;
 // use keyboard::KeyName;
@@ -58,6 +61,25 @@ use {defmt_rtt as _, panic_probe as _};
 // use types::DisplaySpecs;
 // const DISPLAY_FREQ: u32 = 20_000_000;  
 
+const NAME_LEFT: i32 = 1;
+const COLON_LEFT: i32 = 6;
+const NUM_LEFT: i32 = 12; 
+const LINE_SPACING: i32 = 15;
+const X_NUM_BOTTOM: i32 = 62;
+const Y_NUM_BOTTOM: i32 = X_NUM_BOTTOM - LINE_SPACING;
+const Z_NUM_BOTTOM: i32 = X_NUM_BOTTOM - 2*LINE_SPACING;
+const A_NUM_BOTTOM: i32 = X_NUM_BOTTOM - 3*LINE_SPACING;
+const X_LABEL_BOTTOM: i32 = 59;
+const Y_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - LINE_SPACING;
+const Z_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 2*LINE_SPACING;
+const A_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 3*LINE_SPACING;
+
+
+// (1, 59-ls), stack_font).draw(&mut display);
+//                 let _ = Text::new(":", Point::new(6, 59-ls), stack_font).draw(&mut display);
+//                 let _ = Text::new(&text, Point::new(12, 62-ls),
+
+
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
@@ -95,10 +117,8 @@ async fn main(_spawner: Spawner) {
     // circle.draw(&mut display);
 
     let font = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
-    // let _ =Text::new("123", Point::new(3, 61), font)
-    //     .draw(&mut display);
+    let stack_names_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
 
-    let _ =display.flush();
 
     // Keyboard pins
     let row1 = Input::new(p.PIN_2, Pull::Down);
@@ -123,55 +143,60 @@ async fn main(_spawner: Spawner) {
 
     unsafe {
         let mut calc =  Calc::new();
-        
-
         let mut keyboard = Keyboard::new(rows, cols);
+
+        // Put something on the display so I know its working...:
+        let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+        let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+        let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+        let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+        let _= Text::new("z", Point::new(NAME_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+        let _ = Text::new(":", Point::new(COLON_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+        let _= Text::new("a", Point::new(NAME_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+        let _ = Text::new(":", Point::new(COLON_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+        display.flush().unwrap();        
+
         loop {
-
-
             let key = keyboard.scan().await;
             if key == None {
+                Timer::after_millis(10).await; 
                 continue;
             }
-        
-            if let Some(text) = calc.input_key(key){
-                let text = Text::new(&text, Point::new(1, 63), font);
-                info!("about to draw");
-                let _ = text.draw(&mut display); 
-                let _ = display.flush();
+            info!("key arrived");
+            // let ls=15; // line spacing
+            let (stacky, stackz, stacka)=calc.update_stack_display();
+            let ytext: String<64> = format!("{}", stacky).unwrap();
+            let ztext: String<64> = format!("{}", stackz).unwrap();
+            let atext: String<64> = format!("{}", stacka).unwrap();
+
+            // let ztext = format!("{?}", stackz);
+            // let atext = format!("{?}", stacka);
+            
+            if let Some(xtext) = calc.input_key(key){
+                 display.clear(BinaryColor::Off);
+                let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+                let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+                let _ = Text::new(&xtext, Point::new(NUM_LEFT, X_NUM_BOTTOM), font).draw(&mut display);
+                let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+                let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+                let _ = Text::new(&ytext, Point::new(NUM_LEFT, Y_NUM_BOTTOM), font).draw(&mut display);
+                let _= Text::new("z", Point::new(NAME_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+                let _ = Text::new(":", Point::new(COLON_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+                let _ = Text::new(&ztext, Point::new(NUM_LEFT, Z_NUM_BOTTOM), font).draw(&mut display);
+                let _= Text::new("a", Point::new(NAME_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+                let _ = Text::new(":", Point::new(COLON_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+                let _ = Text::new(&atext, Point::new(NUM_LEFT, A_NUM_BOTTOM), font).draw(&mut display);
+                
+                // info!("inside display clear and x code");
             }
-
-
-            Timer::after_millis(10).await; 
+display.flush().unwrap();
 
 
 
-            // match key {
-            //     Some(key) => {    
-            //         match key.index as KeyName {
-            //             keyboard::KeyName::Number1 => info!("Key 1 pressed"),
-            //             keyboard::KeyName::Number2 => info!("Key 2 pressed"),
-            //             keyboard::KeyName::Number3 => info!("Key 3 pressed"),
-            //             keyboard::KeyName::Number4 => info!("Key 4 pressed"),
-            //             keyboard::KeyName::Number5 => info!("Key 5 pressed"),
-            //             keyboard::KeyName::Number6 => info!("Key 6 pressed"),
-            //             keyboard::KeyName::Number7 => info!("Key 7 pressed"),
-            //             keyboard::KeyName::Number8 => info!("Key 8 pressed"),
-            //             keyboard::KeyName::Number9 => info!("Key 9 pressed"),
-            //             keyboard::KeyName::Number0 => info!("Key 0 pressed"),
-            //             _ =>   info!("In main, Key {:?} pressed", key),
-            //         }
-            //         // println!("Key {:?} pressed", k);
-            //     }
-            //     _ => {  // default case, when no key is pressed
-            //         // error!("Error in keypress processing");
-            //     }
+            //     // DONT ALLOW POINTS AFTER E             
             // }
 
 
-            // let t =Text::new("888.888", Point::new(30, 30), font);
-
-            // t.draw(&mut display).unwrap();
 
         }
 }
@@ -179,182 +204,3 @@ async fn main(_spawner: Spawner) {
 
 
 
-
-
-
-
-// #[embassy_executor::main]
-// async fn main(_spawner: Spawner) {
-//     let p = embassy_rp::init(Default::default());
-//     info!("Started");
-
-//     // let mut led = Output::new(p.PIN_25, Level::Low);
-
-//     let mosi = p.PIN_19;
-//     let miso  = p.PIN_20;
-//     let display_cs = p.PIN_21;
-//     let clk = p.PIN_18;
-//     let reset  = p.PIN_28;
-//     let a0 = p.PIN_27;
-
-//     let mut reset = Output::new(reset, Level::Low);
-//     let a0 = Output::new(a0, Level::Low);   
-
-//     let display_config = spi::Config::default();
-
-//     static spi<T,M>:Spi = Spi::new_blocking(p.SPI0, clk, mosi, miso, display_config.clone());
-//     static spi_bus: Mutex<NoopRawMutex, _> = Mutex::new(RefCell::new(spi));
-
-//     // let display_spi: SpiDeviceWithConfig<'_, NoopRawMutex, Spi<'_, SPI0, Blocking>, Output<'_>>=SpiDeviceWithConfig::new(&spi_bus, Output::new(display_cs, Level::High), display_config);
-//     let display_spi=SpiDeviceWithConfig::new(&spi_bus, Output::new(display_cs, Level::High), display_config);
-//     let display_interface: SPIInterface<SpiDeviceWithConfig<'_, NoopRawMutex, Spi<'_, SPI0, Blocking>, Output<'_>>, Output<'_>> = SPIInterface::new(display_spi, a0);
-    
-   
-//     let mut page_buffer = GraphicsPageBuffer::new();
-//     let mut display = st7565::ST7565::new(display_interface, DOGL128_6)
-//         .into_graphics_mode(&mut page_buffer);   
-//     display.reset(&mut reset, &mut Delay).unwrap();
-//     display.flush().unwrap();
-//     display.set_display_on(true).unwrap();
-
-
-//     // Keyboard pins
-//     let row1 = Input::new(p.PIN_2, Pull::Down);
-//     let row2 = Input::new(p.PIN_3, Pull::Down);
-//     let row3 = Input::new(p.PIN_4, Pull::Down);
-//     let row4 = Input::new(p.PIN_5, Pull::Down);
-//     let row5 = Input::new(p.PIN_6, Pull::Down);
-//     let row6 = Input::new(p.PIN_7, Pull::Down);
-//     let row7 = Input::new(p.PIN_8, Pull::Down);
-//     let row8 = Input::new(p.PIN_9, Pull::Down);
-
-
-//     let col1 = Output::new(p.PIN_10, Level::Low); 
-//     let col2 = Output::new(p.PIN_11, Level::Low);
-//     let col3 = Output::new(p.PIN_12, Level::Low);
-//     let col4 = Output::new(p.PIN_13, Level::Low);
-//     let col5 = Output::new(p.PIN_14, Level::Low);
-//     let col6 = Output::new(p.PIN_15, Level::Low);
-
-//     let rows = [row1, row2, row3, row4, row5, row6, row7, row8];
-//     let cols = [col1, col2, col3, col4, col5, col6];
-
-//     let mut keyboard = Keyboard::new(rows, cols);
-
-//     info!("Keyboard initialized");
-
-//     let mut display_config = spi::Config::default();
-//     display_config.frequency = DISPLAY_FREQ;
-//     display_config.phase = spi::Phase::CaptureOnSecondTransition;
-//     display_config.polarity = spi::Polarity::IdleHigh;
-
-
-//     let mut screen = Screen::new(&mut display);
-
-
-//     screen.draw().unwrap();
-
-
-
-//     //     // Draw content
-//     //     let _ =Circle::new(Point::new(106, 106), 20)
-//     //         .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 2))
-//     //         .draw(&mut display);
-//     //     let _ =Rectangle::new(Point::new(106, 6), Size::new(20, 20))
-//     //         .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 2))
-//     //         .draw(&mut display);
-//     //     let font = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
-
-
-//     //     // 10x20 (which is 8x13) - good size for 4 lines, probably just a good size 
-//     //     let _ =Text::new("11.1111345", Point::new(0, 13), font)
-//     //         .draw(&mut display);
-//     //     let _ =Text::new("23.4567", Point::new(0, 29), font)
-//     //         .draw(&mut display);
-//     //     let _ =Text::new("34.5678", Point::new(3, 45), font)
-//     //         .draw(&mut display);
-//     //     let _ =Text::new("88.8888", Point::new(3, 61), font)
-//     //         .draw(&mut display);
-//     //     // Text::new("56.789", Point::new(3, 62), font)
-//     //     //     .draw(&mut display)
-//     //     //     .unwrap();
-
-
-//     //     let _ =display.flush();
-//     // //        let _ =Circle::new(Point::new(106, 106), 20)
-//     // //         .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 2))
-//     // //         .draw(disp);
-//     // // //  draw(disp).unwrap();
-
-
-//     loop {
-//         let key = keyboard.scan().await;
-//         if key.is_some() {
-//             info!("In main, Key {:?} pressed", key);
-//         }
-//         Timer::after_millis(10).await; 
-//     }             
-// }
-
-// pub struct DrawStack<'a>{
-//     disp: ST7565<SPIInterface<SpiDeviceWithConfig<'a, NoopRawMutex, Spi<'a, embassy_rp::peripherals::SPI0, Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
-//     x: f64,
-//     y: f64,
-//     z: f64,
-//     a: f64,
-// }
-
-// impl DrawStack {
-//     pub fn new() -> Self {
-//         Self {
-//             disp: ST7565::new(),
-//             x: 0.0,
-//             y: 0.0,
-//             z: 0.0,
-//             a: 0.0,
-//         }
-//     }
-// }
-
-
-
-
-
-
-
-
-// pub fn draw(mut disp: ST7565<SPIInterface<SpiDeviceWithConfig<'_, NoopRawMutex, Spi<'_, SPI0, Blocking>, Output<'_>>,
-//          Output<'_>>, DOGL128_6, GraphicsMode<'_, 128, 8>, 128, 64, 8>)-> Result<(), core::convert::Infallible >
-// {
-//     use embedded_graphics::prelude::*;
-//     use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
-//     use embedded_graphics::mono_font::{ascii::FONT_10X20, MonoTextStyle};
-//     use embedded_graphics::text::Text;
-//     use embedded_graphics::pixelcolor::BinaryColor;
-
-//     // Draw content
-//     let _ =Circle::new(Point::new(106, 106), 20)
-//         .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 2))
-//         .draw(&mut disp);
-//     let _ =Rectangle::new(Point::new(106, 6), Size::new(20, 20))
-//         .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 2))
-//         .draw(&mut disp)?;
-//     let font = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
-
-//     // 10x20 (which is 8x13) - good size for 4 lines, probably just a good size 
-//     let _ =Text::new("12.3456", Point::new(0, 13), font)
-//         .draw(&mut disp)?;
-//     let _ =Text::new("23.4567", Point::new(0, 29), font)
-//         .draw(&mut disp);
-//     Text::new("34.5678", Point::new(3, 45), font)
-//         .draw(&mut disp)?;
-//     let _ =Text::new("45.6789", Point::new(3, 61), font)
-//         .draw(&mut disp)?;
-//     // Text::new("56.789", Point::new(3, 62), font)
-//     //     .draw(&mut disp)
-//     //     .unwrap();
-
-
-//     let _ =disp.flush();
-//     Ok(())
-// }
