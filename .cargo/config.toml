@@ -44,6 +44,8 @@ rustflags = [
 #
 # Load an elf, skipping unchanged flash sectors, verify it, and execute it
 runner = "picotool load -u -v -x -t elf"
+# runner = 'probe-rs run --chip <chip-name>'
+
 
 # This is the soft-float ABI for Arm mode.
 #
@@ -65,6 +67,8 @@ rustflags = [
 #
 # Load an elf, skipping unchanged flash sectors, verify it, and execute it
 runner = "picotool load -u -v -x -t elf"
+# runner = 'probe-rs run --chip <chip-name>'
+
 
 # This is the soft-float ABI for RISC-V mode.
 #
@@ -94,3 +98,5 @@ rustflags = [
 #
 # Load an elf, skipping unchanged flash sectors, verify it, and execute it
 runner = "picotool load -u -v -x -t elf"
+
+# runner = 'probe-rs run --chip RP2350A'

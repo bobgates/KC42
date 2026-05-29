@@ -63,7 +63,7 @@ use {defmt_rtt as _, panic_probe as _};
 
 const NAME_LEFT: i32 = 1;
 const COLON_LEFT: i32 = 6;
-const NUM_LEFT: i32 = 12; 
+const NUM_LEFT: i32 = 15; 
 const LINE_SPACING: i32 = 15;
 const X_NUM_BOTTOM: i32 = 62;
 const Y_NUM_BOTTOM: i32 = X_NUM_BOTTOM - LINE_SPACING;
@@ -145,6 +145,8 @@ async fn main(_spawner: Spawner) {
         let mut calc =  Calc::new();
         let mut keyboard = Keyboard::new(rows, cols);
 
+        // keyboard_initialise
+
         // Put something on the display so I know its working...:
         let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
         let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
@@ -162,30 +164,30 @@ async fn main(_spawner: Spawner) {
                 Timer::after_millis(10).await; 
                 continue;
             }
-            info!("key arrived");
+            // info!("key arrived");
             // let ls=15; // line spacing
-            let (stacky, stackz, stacka)=calc.update_stack_display();
-            let ytext: String<64> = format!("{}", stacky).unwrap();
-            let ztext: String<64> = format!("{}", stackz).unwrap();
-            let atext: String<64> = format!("{}", stacka).unwrap();
+            // let (stacky, stackz, stacka)=calc.update_stack_display();
+            // let ytext: String<64> = format!("{}", stacky).unwrap();
+            // let ztext: String<64> = format!("{}", stackz).unwrap();
+            // let atext: String<64> = format!("{}", stacka).unwrap();
 
             // let ztext = format!("{?}", stackz);
             // let atext = format!("{?}", stacka);
             
-            if let Some(xtext) = calc.input_key(key){
+            if let Some(xtext) = calc.process_key(key){
                  display.clear(BinaryColor::Off);
                 let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
                 let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
                 let _ = Text::new(&xtext, Point::new(NUM_LEFT, X_NUM_BOTTOM), font).draw(&mut display);
                 let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
                 let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-                let _ = Text::new(&ytext, Point::new(NUM_LEFT, Y_NUM_BOTTOM), font).draw(&mut display);
+                // let _ = Text::new(&ytext, Point::new(NUM_LEFT, Y_NUM_BOTTOM), font).draw(&mut display);
                 let _= Text::new("z", Point::new(NAME_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
                 let _ = Text::new(":", Point::new(COLON_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-                let _ = Text::new(&ztext, Point::new(NUM_LEFT, Z_NUM_BOTTOM), font).draw(&mut display);
+                // let _ = Text::new(&ztext, Point::new(NUM_LEFT, Z_NUM_BOTTOM), font).draw(&mut display);
                 let _= Text::new("a", Point::new(NAME_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
                 let _ = Text::new(":", Point::new(COLON_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-                let _ = Text::new(&atext, Point::new(NUM_LEFT, A_NUM_BOTTOM), font).draw(&mut display);
+                // let _ = Text::new(&atext, Point::new(NUM_LEFT, A_NUM_BOTTOM), font).draw(&mut display);
                 
                 // info!("inside display clear and x code");
             }

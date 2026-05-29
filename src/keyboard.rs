@@ -13,38 +13,11 @@ use embassy_rp::{gpio::{Input, Output}};//, multicore::current_core};
 
 #[derive(Debug, Format, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
-// pub enum KeyName{
-//     Fn1=1, Fn2, Fn3, Fn4, Fn5, Fn6,
-//     SigmaPlus,
-//     Invert,
-//     Sqrt,
-//     Log,
-//     Ln,
-//     Xeq,
-//     Sto,
-//     Rcl,
-//     RollDown,
-//     Sin,
-//     Cos,
-//     Tan,
-//     Enter,
-//     XswapY,
-//     PlusMinus,
-//     E,
-//     Back,
-//     Up,
-//     Down,
-//     Orange,
-//     Exit,
-//     DecimalPoint,
-//     RunStop,
-//     Plus,
-//     Minus,
-//     Divide,
-//     Multiply,
-//     Number(u8),
-//     Error,
-// }
+// pub enum KeyName{//     Fn1=1, Fn2, Fn3, Fn4, Fn5, Fn6,//     SigmaPlus,//     Invert,//     Sqrt,
+//     Log,//     Ln,//     Xeq,//     Sto,//     Rcl,//     RollDown,//     Sin,
+//     Cos,//     Tan,//     Enter,//     XswapY,//     PlusMinus,//     E,//     Back,
+//     Up,//     Down,//     Orange,//     Exit,//     DecimalPoint,//     RunStop,
+//     Plus,//     Minus,//     Divide,//     Multiply,//     Number(u8),//     Error,// }
 pub enum KeyName{
     Number0=0, // Setting the first to a number starts an auto-numbering system
     Number1,

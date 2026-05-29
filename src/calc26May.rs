@@ -7,7 +7,6 @@
 
 use core::char;
 use core::f32;
-// use core::ops::range;
 use defmt::println;
 // use embedded_graphics::prelude::*;
 // use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
@@ -47,20 +46,7 @@ impl Stack {
     }
 }
 
-const DOT: u8 = '.' as u8;
-const E: u8 =  KeyName::E as u8;
-const MINUS: u8 = '-' as u8;
-const UNDERSCORE: u8 = '_' as u8;
-const COMMA: u8 = ',' as u8;
 
-
-// Format for the display of numbers. It can be one of those below.
-// The numeric parameter is the number of decimal points
-enum NumFormat {
-    Eng(u8),
-    Sci(u8),
-    Fix(u8),
-}
 
 pub struct Calc {
     // num_buffer: Vec<u8, 20>,  // Holds the numbers while they're being entered
@@ -69,7 +55,6 @@ pub struct Calc {
     editing: bool,
     num_has_exponent: bool,
     num_is_negative: bool,
-    num_format: NumFormat,
     stack: Stack,
     style: MonoTextStyle<'static,BinaryColor>,
     line: String<40>,
@@ -79,14 +64,13 @@ pub struct Calc {
 impl Calc {
     pub unsafe  fn new() -> Calc {
         let style = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
-        //static mut LINE: String<40> = String::new(); // Line to hold x number for editing
+        static mut LINE: String<40> = String::new();
 
         Calc { 
-            num_buffer: Vec::<u8,64>::new(),    // A text line used for editing and converted to a number
+            num_buffer: Vec::<u8,64>::new(),
             num_has_point: false,
             num_has_exponent: false,
             num_is_negative: false,
-            num_format: NumFormat::Eng(4),
             editing: true,
             stack: Stack::new(),
             style: style,
@@ -94,31 +78,24 @@ impl Calc {
         }
     }
 
-    pub fn update_stack_display(self){
-
+    // Empty the num_buffer
+    pub fn clear_num(&mut self) {
+        self.num_buffer.clear();
     }
 
+    pub fn update_stack_display(&mut self)->(f64, f64, f64){
+        (self.stack.y, self.stack.z,self.stack.a)
+    }
 
     // Called if a number key, +-, E key, enter key, backspace or the decimal point
     // is pressed
-    pub fn update_numbuffer(&mut self, key: KeyName){
+    pub fn process_number(&mut self, key: KeyName){
         // info!("{} pressed", key as u8);
 
         if (key as u8) < 10{
             if self.editing {
                 self.num_buffer.push(key as u8).expect("digit must be in the range 0-9 or .");   
                 // info!("{} number", key as u8);
-            } else {
-                info!("in update_numbuffer where I shouldn't be");
-                self.num_buffer.clear();
-                let _ = self.num_buffer.push(0);
-                let _ = self.num_buffer.push(KeyName::DecimalPoint as u8);
-                if let NumFormat::Eng(n)= self.num_format{
-                    for _ in 0..n{
-                        let _ = self.num_buffer.push(0);
-                    }
-                }
-
             }
         } else {
             match key{
@@ -144,34 +121,23 @@ impl Calc {
                                 self.num_has_point=false;
                             };
                             if key == 'E' as u8 {
-                                info!("in E");
-                                self.num_has_exponent=!self.num_has_exponent;
+                                self.num_has_exponent=false;
                             }
                         } else if self.num_buffer.len()==1{
-                            let _ = self.editing = false;
+                            info!("num_buffer has one char");
+                            // num_buffer is only 1 char and backspace
+                            // has been pressed. Fill num_buffer with an
+                            // appropriate form of 0
                             let _ = self.num_buffer.pop().unwrap();
-                            // ********* self.zero_to_numbuffer();
+                            let _ = self.editing = false;
                             let _ = self.num_buffer.push(0);
-                            let _ = self.num_buffer.push(DOT);
+                            let _ = self.num_buffer.push('.' as u8);
                             let _ = self.num_buffer.push(0);
                             let _ = self.num_buffer.push(0);
-                            let _ = self.num_buffer.push(0);
-
+                            let _ = self.num_has_exponent=false;
+                            let _ = self.num_has_point= true;
                         }
-                    } else {
-                        let _ = self.editing = false;
-                        let _ = self.num_buffer.pop().unwrap();
-                        // ********* self.zero_to_numbuffer();
-                        let _ = self.num_buffer.push(0);
-                        let _ = self.num_buffer.push('.' as u8);
-                        let _ = self.num_buffer.push(0);
-                        let _ = self.num_buffer.push(0);
-                        let _ = self.num_buffer.push(0);
-                    }
-                    
-                    // HANDLE NON-EDITING MODE
-                    
-                    // else {
+                    }// else {
                     //     info!("Not in editing mode");
                     //     let _ = self.num_buffer.push(0);
                     //     let _ = self.num_buffer.push('.' as u8);
@@ -196,70 +162,51 @@ impl Calc {
         }
     }
 
-    // Takes the number buffer and puts it into an f64
-    fn to_num(&mut self){
 
-    }
-
-    // Takes an f64 and puts it into display form in self.num_buffer
-    fn from_num(&mut self, _num: f64){
-
-    }
-
-    // Takes a key stroke and figures out what to do with it
-    pub fn process_key<'a>(&mut self, key: Option<KeyName>)->Option<String<40>>{
-        if key==Option::None {  // It gets called every key read loop
+    // Calls process number, then creates the text goes into the 
+    // line buffer
+    pub fn input_key<'a>(&mut self, key: Option<KeyName>)->Option<String<40>>{
+        if key==Option::None {
             return None;
-        } 
-        let key: KeyName = key.unwrap(); // Safe because None case is handled above
-
-        // info!("About to call update_numbuffer");
-        self.update_numbuffer(key);   
-        
-        info!("---------numbuffer starts");
-        for c in self.num_buffer.clone(){
-            info!("{}", c);
         }
-        info!("---------");
-        // info!("{:?}", self.num_buffer.clone());
+        let key = key.unwrap();
+        // info!("About to call process_number");
+        self.process_number(key);   // Uses key to modify num_buffer
 
-        // Create the characters that represent the bottom
-        // of the stack. But what if it is empty?
+        // if !self.editing {
+
+
+
+
+
+
+
+        // Line get
         self.line.clear();
         if self.num_is_negative {
             self.line.push('-').unwrap();
         }
-        // Move this into
-        if self.num_buffer.len()>0{
-            for n in self.num_buffer.clone(){
-                match n {
-                    0..=9 => if let Some(c) = char::from_digit(n.into(), 10){
-                                    self.line.push(c).unwrap();
-                                    info!("pushed number {}",c);
-                            },    
-                   DOT => { self.line.push('.').unwrap();
-                                    info!("pushed .");      
-                            },
-                    E => { self.line.push('e').unwrap();
-                                    info!("pushed e");      
-                            },
-                    MINUS => { self.line.push('-').unwrap();
-                                    info!("pushed .");      
-                            },
-                    UNDERSCORE =>{ self.line.push('_').unwrap();
-                                    info!("pushed .");      
-                            },
-                    COMMA=> {self.line.push(',').unwrap();
-                                    info!("pushed ,")
-                            }
-                    _ => info!("Number buffer couldn't be cloned"),
-                }
+        // info!("Decimal point is {}", KeyName::DecimalPoint as u8);
+        for n in self.num_buffer.clone(){
+//            info!("n is {}",n);
+            if n == '.' as u8{
+                self.line.push('.').unwrap();
+            } else if n == KeyName::E as u8 {
+                self.line.push('E').unwrap();
+            } else {
+                let c = char::from_digit(n.into(), 10).unwrap();
+                self.line.push(c).unwrap();
             }
-        } else {
-            info!("Num_buffer is empty");
+
+        }
+
+        if self.editing {
+            info!("In editing print");
+            self.line.push('_').unwrap();
         }
 
         if self.line.len()>0 {
+            // info!("{}", self);
             Some(self.line.clone())
         } else {
             None
