@@ -7,6 +7,8 @@
 
 use core::char;
 use core::f32;
+use core::num;
+use cortex_m::peripheral::nvic;
 // use core::ops::range;
 use defmt::println;
 // use embedded_graphics::prelude::*;
@@ -62,6 +64,7 @@ enum NumFormat {
     Fix(u8),
 }
 
+
 pub struct Calc {
     // num_buffer: Vec<u8, 20>,  // Holds the numbers while they're being entered
     num_buffer: Vec<u8,64>,
@@ -81,8 +84,10 @@ impl Calc {
         let style = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
         //static mut LINE: String<40> = String::new(); // Line to hold x number for editing
 
+        let mut num_buffer = Vec::<u8,64>::new();
+        num_buffer.push('_' as u8).expect("Failed to push '_' into num_buffer in Calc::new()");
         Calc { 
-            num_buffer: Vec::<u8,64>::new(),    // A text line used for editing and converted to a number
+            num_buffer,//: Vec::<u8,64>::new(),    // A text line used for editing and converted to a number
             num_has_point: false,
             num_has_exponent: false,
             num_is_negative: false,
@@ -106,26 +111,28 @@ impl Calc {
 
         if (key as u8) < 10{
             if self.editing {
+                let d = self.num_buffer.pop().expect("Failed to pop from num_buffer");
+                if d != '_' as u8 {
+                    info!("_ was expected but {} was found",d);   // remove the _ character
+                }
                 self.num_buffer.push(key as u8).expect("digit must be in the range 0-9 or .");   
+                self.num_buffer.push(d as u8).expect("Failed to push _ into num_buffer");
+
                 // info!("{} number", key as u8);
             } else {
-                info!("in update_numbuffer where I shouldn't be");
+                info!("in not editing update_numbuffer ");
                 self.num_buffer.clear();
-                let _ = self.num_buffer.push(0);
-                let _ = self.num_buffer.push(KeyName::DecimalPoint as u8);
-                if let NumFormat::Eng(n)= self.num_format{
-                    for _ in 0..n{
-                        let _ = self.num_buffer.push(0);
-                    }
-                }
-
+                self.num_buffer.push(key as u8).expect("digit must be in the range 0-9 or .");   
+                let _ = self.num_buffer.push('_' as u8);
+                self.editing = true;
             }
         } else {
             match key{
                 KeyName::DecimalPoint => if !self.num_has_point {
                     info!("Decimal point: pressed");
-                    if !self.num_has_exponent{ 
+                    if !self.num_has_point{ 
                         self.num_has_point = true;
+
                         self.num_buffer.push(key as u8).expect("key must be ."); 
                     } 
                 },
@@ -147,16 +154,17 @@ impl Calc {
                                 info!("in E");
                                 self.num_has_exponent=!self.num_has_exponent;
                             }
-                        } else if self.num_buffer.len()==1{
-                            let _ = self.editing = false;
-                            let _ = self.num_buffer.pop().unwrap();
-                            // ********* self.zero_to_numbuffer();
-                            let _ = self.num_buffer.push(0);
-                            let _ = self.num_buffer.push(DOT);
-                            let _ = self.num_buffer.push(0);
-                            let _ = self.num_buffer.push(0);
-                            let _ = self.num_buffer.push(0);
-
+                        // } else if self.num_buffer.len()==1{
+                        //     let _ = self.editing = false;
+                        //     let _ = self.num_buffer.pop().unwrap();
+                        //     // ********* self.zero_to_numbuffer();
+                        //     let _ = self.num_buffer.push(0);
+                        //     let _ = self.num_buffer.push(DOT);
+                        //     let _ = self.num_buffer.push(0);
+                        //     let _ = self.num_buffer.push(0);
+                        //     let _ = self.num_buffer.push(0);
+                        //     let _ = self.num_buffer.push(KeyName::E as u8);
+                        //     let _ = self.num_buffer.push(0);
                         }
                     } else {
                         let _ = self.editing = false;
@@ -216,7 +224,7 @@ impl Calc {
         // info!("About to call update_numbuffer");
         self.update_numbuffer(key);   
         
-        info!("---------numbuffer starts");
+        // info!("---------numbuffer starts: {}", self.num_buffer.clone());
         for c in self.num_buffer.clone(){
             info!("{}", c);
         }
@@ -232,28 +240,30 @@ impl Calc {
         // Move this into
         if self.num_buffer.len()>0{
             for n in self.num_buffer.clone(){
+                let last = self.line.pop();
                 match n {
                     0..=9 => if let Some(c) = char::from_digit(n.into(), 10){
                                     self.line.push(c).unwrap();
                                     info!("pushed number {}",c);
                             },    
-                   DOT => { self.line.push('.').unwrap();
+                   37 => { self.line.push('.').unwrap();
                                     info!("pushed .");      
                             },
                     E => { self.line.push('e').unwrap();
                                     info!("pushed e");      
                             },
-                    MINUS => { self.line.push('-').unwrap();
-                                    info!("pushed .");      
+                    MINUS => { self.line.push('-').unwrap();        //95 is the ASCII code for underscore, but it is used as a placeholder for the end of the number buffer, so it shouldn't be displayed. The actual minus sign is 45.
+                                    info!("pushed -");      
                             },
                     UNDERSCORE =>{ self.line.push('_').unwrap();
-                                    info!("pushed .");      
+                                    info!("pushed _");      
                             },
-                    COMMA=> {self.line.push(',').unwrap();
-                                    info!("pushed ,")
-                            }
-                    _ => info!("Number buffer couldn't be cloned"),
+                    // COMMA=> {self.line.push(',').unwrap();
+                    //                 info!("pushed ,")
+                    //         }
+                    _ => info!("Number buffer contains {} -  couldn't be cloned", n),
                 }
+                self.line.push(last.unwrap()).unwrap();  // Add the _ back in   
             }
         } else {
             info!("Num_buffer is empty");

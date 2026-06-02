@@ -16,7 +16,7 @@ use embassy_rp::{gpio::{Input, Output}};//, multicore::current_core};
 // pub enum KeyName{//     Fn1=1, Fn2, Fn3, Fn4, Fn5, Fn6,//     SigmaPlus,//     Invert,//     Sqrt,
 //     Log,//     Ln,//     Xeq,//     Sto,//     Rcl,//     RollDown,//     Sin,
 //     Cos,//     Tan,//     Enter,//     XswapY,//     PlusMinus,//     E,//     Back,
-//     Up,//     Down,//     Orange,//     Exit,//     DecimalPoint,//     RunStop,
+//     Up,//     Down,//     Orange,//     OnOff,//     DecimalPoint,//     RunStop,
 //     Plus,//     Minus,//     Divide,//     Multiply,//     Number(u8),//     Error,// }
 pub enum KeyName{
     Number0=0, // Setting the first to a number starts an auto-numbering system
@@ -24,50 +24,49 @@ pub enum KeyName{
     Number2,
     Number3,
     Number4,
-    Number5,
+    Number5,    //5
     Number6,
     Number7,
     Number8,
     Number9,
-    Fn1,
+    Fn1,        //10
     Fn2, 
     Fn3, 
     Fn4, 
-    Fn5, 
-    Fn6,
+    Fn5,        
+    Fn6,        //15
     SigmaPlus,
     Invert,
     Sqrt,
-    Log,
-    Ln,
+    Log,        
+    Ln,         //20
     Xeq,
     Sto,
     Rcl,
-    RollDown,
-    Sin,
+    RollDown,   
+    Sin,        //25
     Cos,
     Tan,
     Enter,
-    XswapY,
-    PlusMinus,
+    XswapY,     
+    PlusMinus,  //30
     E,
     Back,
     Up,
-    Down,
-    Orange,
-    Exit,
+    Down,       
+    Orange,     //35
+    OnOff,
     DecimalPoint,
     RunStop,
-    Plus,
-    Minus,
+    Plus,       
+    Minus,      //40
     Divide,
     Multiply,
-
     Error,
 }
 // #[derive(Debug, Clone, Copy)]
 static ROW_COL_MAP: [[KeyName; 6]; 8] = [
-    [KeyName::Exit, KeyName::Number0, KeyName::DecimalPoint, KeyName::Error,  KeyName::RunStop, KeyName::Plus],
+    [KeyName::OnOff, KeyName::Number0, KeyName::DecimalPoint, KeyName::Error,  KeyName::RunStop, KeyName::Plus],
     [KeyName::Orange, KeyName::Number1, KeyName::Number2, KeyName::Error,  KeyName::Number3, KeyName::Minus],
     [KeyName::Down, KeyName::Number4, KeyName::Number5, KeyName::Error,  KeyName::Number6,KeyName::Multiply],
     [KeyName::Up, KeyName::Number7, KeyName::Number8, KeyName::Error, KeyName::Number9, KeyName::Divide],
