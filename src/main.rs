@@ -174,7 +174,7 @@ async fn main(_spawner: Spawner) {
             // let ztext = format!("{?}", stackz);
             // let atext = format!("{?}", stacka);
             
-            if let Some(xtext) = calc.process_key(key){
+            if let Some(xtext) = calc.process_key(key.unwrap()){ // Safe because of check above
                  display.clear(BinaryColor::Off);
                 let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
                 let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
@@ -191,14 +191,7 @@ async fn main(_spawner: Spawner) {
                 
                 // info!("inside display clear and x code");
             }
-display.flush().unwrap();
-
-
-
-            //     // DONT ALLOW POINTS AFTER E             
-            // }
-
-
+            display.flush().unwrap();
 
         }
 }

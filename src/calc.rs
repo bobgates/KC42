@@ -19,6 +19,7 @@ use embedded_graphics::pixelcolor::BinaryColor;
 
 use heapless::Vec;
 use heapless::String;
+use heapless::format;
 // use std::vec::Vec;
 use crate::keyboard::KeyName;
 
@@ -49,11 +50,12 @@ impl Stack {
     }
 }
 
-const DOT: u8 = '.' as u8;
-const E: u8 =  KeyName::E as u8;
-const MINUS: u8 = '-' as u8;
-const UNDERSCORE: u8 = '_' as u8;
-const COMMA: u8 = ',' as u8;
+const DP: u8 = '.' as u8;
+const E: u8 =  KeyName::E as u8;    // 69 decimal
+const MINUS: u8 = '-' as u8;        // 45 decimal
+const UNDERSCORE: u8 = '_' as u8;   // 95
+const BACK: u8 = KeyName::Back as u8;  // 66 decimal
+const PLUSMINUS: u8 = KeyName::PlusMinus as u8;  // 30 decimal
 
 
 // Format for the display of numbers. It can be one of those below.
@@ -80,6 +82,8 @@ pub struct Calc {
 }
 
 impl Calc {
+
+    // Starts with just _ in the num_buffer,    
     pub unsafe  fn new() -> Calc {
         let style = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
         //static mut LINE: String<40> = String::new(); // Line to hold x number for editing
@@ -99,9 +103,161 @@ impl Calc {
         }
     }
 
-    pub fn update_stack_display(self){
+    pub fn process_key(&mut self, key: KeyName)->Option<String<40>>{
+        // Are we editing? Look for _ in numbuffer
+        self.editing=false;
+        for c in self.num_buffer.clone(){
+            if char::from(c) == '_' {
+                info!("Found _ in num_buffer, so we are editing");
+                self.editing = true;
+            } else {
+                if (key as u8) < 10 || (key as u8) == DP || (key as u8) == E || (key as u8) == BACK {
+                    info!("c: {} = {} and no _ in num_buffer - not editing", c, char::from(c));
+                    // but if we're not editing and a number comes in, we go to editing.
+                    self.editing = true;
+                } else { if (key as u8) == PLUSMINUS {
+                    self.num_is_negative = !self.num_is_negative;
+                    }
+                }
+            }
+        }
 
+        if self.editing {
+            info!("In editing mode");
+        } else {
+            info!("Not in editing mode");
+        }
+
+
+// Safe because None case is handled above(){
+
+        info!("key press: {}", key);
+
+        match key {
+        
+
+
+            _ => {},    
+
+        }
+
+        None
     }
+
+
+}
+
+
+
+/* 
+
+
+
+
+    // This routine will only be called for number keys, +-, E key, enter key, backspace or the decimal point
+    pub fn process_numkey<'a>(&mut self, key: Option<KeyName>)->Option<String<40>>{
+        if key==Option::None {  // It gets called every key read loop
+            return None;
+        } 
+        let key: KeyName = key.unwrap(); // Safe because None case is handled above(){
+
+        info!("key: {}", key);
+    
+        if (key as u8) < 10{
+            if self.editing {
+                let d = self.num_buffer.pop().expect("Failed to pop from num_buffer");
+                if d != '_' as u8 {
+                    info!("_ was expected but {} was found",d);   // remove the _ character
+                }
+                self.num_buffer.push(key as u8).expect("digit must be in the range 0-9 or .");   
+                self.num_buffer.push(d as u8).expect("Failed to push _ into num_buffer");
+
+                // info!("{} number", key as u8);
+            } else {
+                info!("in not editing update_numbuffer ");
+                self.num_buffer.clear();
+                self.num_buffer.push(key as u8).expect("digit must be in the range 0-9 or .");   
+                let _ = self.num_buffer.push('_' as u8);
+                self.editing = true;
+            }
+        } else {
+            match key{
+                KeyName::DecimalPoint => if !self.num_has_point {
+                    info!("Decimal point: pressed");        //else ignore
+                    if !self.num_has_point{ 
+                        self.num_has_point = true;
+
+                        self.num_buffer.push(key as u8).expect("key must be ."); 
+                    } 
+                },
+                KeyName::PlusMinus => {
+                    info!("+/- pressed");
+                    self.num_is_negative = !self.num_is_negative;
+
+                }
+                KeyName::Back => {
+                    info!("back pressed");
+                    if self.editing {
+                        info!("In editing mode");
+                        if self.num_buffer.len()>1{
+                            let key = self.num_buffer.pop().unwrap();
+                            if key == '.' as u8 {
+                                self.num_has_point=false;
+                            };
+                            if key == 'E' as u8 {
+                                info!("in E");
+                                self.num_has_exponent=!self.num_has_exponent;
+                            }
+                        // } else if self.num_buffer.len()==1{
+                        //     let _ = self.editing = false;
+                        //     let _ = self.num_buffer.pop().unwrap();
+                        //     // ********* self.zero_to_numbuffer();
+                        //     let _ = self.num_buffer.push(0);
+                        //     let _ = self.num_buffer.push(DOT);
+                        //     let _ = self.num_buffer.push(0);
+                        //     let _ = self.num_buffer.push(0);
+                        //     let _ = self.num_buffer.push(0);
+                        //     let _ = self.num_buffer.push(KeyName::E as u8);
+                        //     let _ = self.num_buffer.push(0);
+                        }
+                    } else {
+                        let _ = self.editing = false;
+                        let _ = self.num_buffer.pop().unwrap();
+                        // ********* self.zero_to_numbuffer();
+                        let _ = self.num_buffer.push(0);
+                        let _ = self.num_buffer.push('.' as u8);
+                        let _ = self.num_buffer.push(0);
+                        let _ = self.num_buffer.push(0);
+                        let _ = self.num_buffer.push(0);
+                    }
+                    
+                    // HANDLE NON-EDITING MODE
+                    
+                    // else {
+                    //     info!("Not in editing mode");
+                    //     let _ = self.num_buffer.push(0);
+                    //     let _ = self.num_buffer.push('.' as u8);
+                    //     let _ = self.num_buffer.push(0);
+                    //     let _ = self.num_buffer.push(0);
+                    //     let _ = self.num_buffer.push(0);
+                    // }
+                }
+                KeyName::E => if !self.num_has_exponent {
+                    info!("E pressed");
+                   
+                    self.num_has_exponent = true;
+                    self.num_buffer.push(key as u8).expect("key should be E");
+                }
+                KeyName::Enter => {
+                    info!("Enter pressed");
+                    self.stack.push();
+                    self.editing = false;
+                }
+                _ => {},
+            }
+        }
+    }
+
 
 
     // Called if a number key, +-, E key, enter key, backspace or the decimal point
@@ -129,7 +285,7 @@ impl Calc {
         } else {
             match key{
                 KeyName::DecimalPoint => if !self.num_has_point {
-                    info!("Decimal point: pressed");
+                    info!("Decimal point: pressed");        //else ignore
                     if !self.num_has_point{ 
                         self.num_has_point = true;
 
@@ -222,11 +378,11 @@ impl Calc {
         let key: KeyName = key.unwrap(); // Safe because None case is handled above
 
         // info!("About to call update_numbuffer");
-        self.update_numbuffer(key);   
+        // self.update_numbuffer(key);   
         
         // info!("---------numbuffer starts: {}", self.num_buffer.clone());
         for c in self.num_buffer.clone(){
-            info!("{}", c);
+            info!("c: {} = {}", c, char::from(c));
         }
         info!("---------");
         // info!("{:?}", self.num_buffer.clone());
@@ -240,13 +396,13 @@ impl Calc {
         // Move this into
         if self.num_buffer.len()>0{
             for n in self.num_buffer.clone(){
-                let last = self.line.pop();
+                // let last = self.line.pop();
                 match n {
                     0..=9 => if let Some(c) = char::from_digit(n.into(), 10){
                                     self.line.push(c).unwrap();
                                     info!("pushed number {}",c);
                             },    
-                   37 => { self.line.push('.').unwrap();
+                   DP => { self.line.push('.').unwrap();
                                     info!("pushed .");      
                             },
                     E => { self.line.push('e').unwrap();
@@ -258,12 +414,11 @@ impl Calc {
                     UNDERSCORE =>{ self.line.push('_').unwrap();
                                     info!("pushed _");      
                             },
-                    // COMMA=> {self.line.push(',').unwrap();
-                    //                 info!("pushed ,")
-                    //         }
                     _ => info!("Number buffer contains {} -  couldn't be cloned", n),
                 }
-                self.line.push(last.unwrap()).unwrap();  // Add the _ back in   
+                // let t = last.expect("Failed to pop from line");
+                // info!("T= {}",t);
+                // self.line.push(t).expect("Failed to push t");  // Add the _ back in   
             }
         } else {
             info!("Num_buffer is empty");
@@ -275,9 +430,12 @@ impl Calc {
             None
         }
     }
+
+
+
 }
 
-
+*/
 
 // Implement ENTER
 // Need to convert number buffer into an actual number!
