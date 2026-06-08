@@ -7,8 +7,10 @@
 // Plan: get the calculator crate to return an enum of Styles, and 
 // then just print them to the screen here.
 
+// mod core::mem::MaybeUninit;
+
 mod keyboard;
-use heapless::{format, String};
+// use heapless::vec::VecInner;
 use embedded_graphics::mono_font::ascii::FONT_7X13;
 use embedded_graphics::mono_font::iso_8859_2::FONT_5X8;
 // use embassy_rp::peripherals::SPI0;
@@ -48,11 +50,14 @@ use embassy_time::Timer;
 use embassy_rp::peripherals::{ SPI0};
 //PIN_18, PIN_19, PIN_20, PIN_21, PIN_27, PIN_28,
 
-use embedded_graphics::prelude::*;
+use embedded_graphics::{prelude::*, text};
 use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
 use embedded_graphics::mono_font::{ascii::FONT_10X20, MonoTextStyle};
 use embedded_graphics::text::Text;
 use embedded_graphics::pixelcolor::BinaryColor;
+
+use heapless::{String, Vec};
+
 
 use {defmt_rtt as _, panic_probe as _};
 // use st7565::types::{BoosterRatio, PowerControlMode};
@@ -104,7 +109,8 @@ async fn main(_spawner: Spawner) {
     let display_spi=SpiDeviceWithConfig::new(&spi_bus, Output::new(display_cs, Level::High), display_config);
     let display_interface: SPIInterface<SpiDeviceWithConfig<'_, NoopRawMutex, Spi<'_, SPI0, Blocking>, Output<'_>>, Output<'_>> = SPIInterface::new(display_spi, a0);
     
-   
+   info!("display interface created");
+
     let mut page_buffer = GraphicsPageBuffer::new();
     let mut display = st7565::ST7565::new(display_interface, DOGL128_6)
         .into_graphics_mode(&mut page_buffer);   
@@ -115,6 +121,12 @@ async fn main(_spawner: Spawner) {
     // let circle =Circle::new(Point::new(50, 50), 20)
     //     .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 2));
     // circle.draw(&mut display);
+
+    let mut num_buffer: Vec<u8, 64> = Vec::new();
+    // let mut num_buffer: Vec<_, U8> = Vec::new();  
+    // let mut xs: Vec<_, U8> = Vec::new();
+    num_buffer.push('_' as u8).expect("Failed to push '_' into num_buffer in main()");
+    let mut text_buffer: String<64> = String::new();
 
     let font = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
     let stack_names_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
@@ -129,7 +141,6 @@ async fn main(_spawner: Spawner) {
     let row6 = Input::new(p.PIN_7, Pull::Down);
     let row7 = Input::new(p.PIN_8, Pull::Down);
     let row8 = Input::new(p.PIN_9, Pull::Down);
-
 
     let col1 = Output::new(p.PIN_10, Level::Low); 
     let col2 = Output::new(p.PIN_11, Level::Low);
@@ -164,7 +175,27 @@ async fn main(_spawner: Spawner) {
                 Timer::after_millis(10).await; 
                 continue;
             }
-            // info!("key arrived");
+
+            // info!("Key {:?} pressed", key.unwrap());
+            calc.process_key(key, &num_buffer);  
+            info!("-----");
+            for c in num_buffer.clone().into_iter() {
+                // let d: char = char::from(*c);
+                info!("num_buffer in main contains {}", c)
+                //     text_buffer.push(*c as char).expect("Failed to push number into num_buffer_str in main");  // Convert the u8 in num_buffer to a char and push it into num_buffer_str for display
+                // } else {
+                //     text_buffer.push(char::from(*c)).expect("Failed to push character into num_buffer_str in main");  // Convert the u8 in num_buffer to a char and push it into num_buffer_str for display
+                // }
+            } 
+            info!("-----");
+
+
+            // info!("num_buffer for display contains {}", text_buffer.as_str());
+
+            // for i in 0..num_buffer.len() {
+            //     info!("num_buffer[{}] = {}", i, num_buffer[i] as char);
+            // }
+
             // let ls=15; // line spacing
             // let (stacky, stackz, stacka)=calc.update_stack_display();
             // let ytext: String<64> = format!("{}", stacky).unwrap();
@@ -173,29 +204,31 @@ async fn main(_spawner: Spawner) {
 
             // let ztext = format!("{?}", stackz);
             // let atext = format!("{?}", stacka);
-            
-            if let Some(xtext) = calc.process_key(key.unwrap()){ // Safe because of check above
-                 display.clear(BinaryColor::Off);
-                let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-                let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-                let _ = Text::new(&xtext, Point::new(NUM_LEFT, X_NUM_BOTTOM), font).draw(&mut display);
-                let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-                let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-                // let _ = Text::new(&ytext, Point::new(NUM_LEFT, Y_NUM_BOTTOM), font).draw(&mut display);
-                let _= Text::new("z", Point::new(NAME_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-                let _ = Text::new(":", Point::new(COLON_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-                // let _ = Text::new(&ztext, Point::new(NUM_LEFT, Z_NUM_BOTTOM), font).draw(&mut display);
-                let _= Text::new("a", Point::new(NAME_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-                let _ = Text::new(":", Point::new(COLON_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-                // let _ = Text::new(&atext, Point::new(NUM_LEFT, A_NUM_BOTTOM), font).draw(&mut display);
-                
-                // info!("inside display clear and x code");
-            }
-            display.flush().unwrap();
 
+
+            
+            display.clear(BinaryColor::Off);
+            let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+            let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+            // let _ = Text::new(&xtext, Point::new(NUM_LEFT, X_NUM_BOTTOM), font).draw(&mut display);
+            let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+            let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+            // let _ = Text::new(&ytext, Point::new(NUM_LEFT, Y_NUM_BOTTOM), font).draw(&mut display);
+            let _= Text::new("z", Point::new(NAME_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+            let _ = Text::new(":", Point::new(COLON_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+            // let _ = Text::new(&ztext, Point::new(NUM_LEFT, Z_NUM_BOTTOM), font).draw(&mut display);
+            let _= Text::new("a", Point::new(NAME_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+            let _ = Text::new(":", Point::new(COLON_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+            // let _ = Text::new(&atext, Point::new(NUM_LEFT, A_NUM_BOTTOM), font).draw(&mut display);
+            
+                // info!("inside display clear and x code");
+        
+            display.flush().unwrap();
         }
+    }
 }
-}
+
+
 
 
 
