@@ -164,13 +164,14 @@ impl Calc {
 
         };
                 // let t = last.expect("Failed to pop from line");
-info!("num_buffer contains {} after processing number key", self.num_buffer.as_slice());
+info!("first num_buffer contains {} after processing number key", self.num_buffer.as_slice());
 
         // Transfer self.num_buffer into a Vec<u8,64> for display. This is a bit convoluted but it allows us to keep the num_buffer as a Vec<u8,64> for editing and then convert it to a String for display and back to a Vec<u8,64> to return it.  
 
         for c in self.num_buffer.iter() {
             if *c<=9{
-                num_buffer_str.push(*c as char).expect("Failed to push number into num_buffer_str in process_key()");  // Convert the u8 in num_buffer to a char and push it into num_buffer_str for display
+                let d:u32 = (*c).into();
+                num_buffer_str.push(char::from_digit(d, 10).expect("Failed to push number into num_buffer_str in process_key()")).unwrap();  // Convert the u8 in num_buffer to a char and push it into num_buffer_str for display
             } else {
                 // num_buffer_str.push('B').expect("Error converting in process_key()");//char::from(*c)).expect("Failed to push character into num_buffer_str in process_key()");  // Convert the u8 in num_buffer to a char and push it into num_buffer_str for display
                     let x = match *c as u8 {
@@ -184,14 +185,22 @@ info!("num_buffer contains {} after processing number key", self.num_buffer.as_s
                 num_buffer_str.push(x).expect("Failed to push character into num_buffer_str in process_key()");
             }
 
+            info!("num_buffer_str contains {} in process_key()", num_buffer_str.as_str());
 
             //     let ch = *c as u32;
             //     num_buffer_str.push(char::from_u32(ch).expect("Error converting char in process_key")).expect("Failed to push character into num_buffer_str in process_key()");  // Convert the u8 in num_buffer to a char and push it into num_buffer_str for display;
             // }
-            for i in num_buffer_str.chars() {
-                info!("num_buffer contains {}-{} in process_key()", i as u8, i);
-            }
-            // num_buffer_str.push(*c as char).expect("Failed to push character into num_buffer_str in process_key()");  // Convert the u8 in num_buffer to a char and push it into num_buffer_str for display
+            // for (count, i) in num_buffer_str.chars().enumerate() {
+            //     info!("B{}{}", count, i);
+            //     let d: u32 = i.into();
+            //     let e:char = char::from_u32(d).expect("Error converting char in process_key() for display");
+            //     info!("{}: {}", count, e);
+            //     // info!("num_buffer contains {}-{} in process_key()", i as u8, char::from_digit(i as u32, 10).unwrap());
+            // }
+            // // num_buffer_str 
+            // .push(*c as char).expect("Failed 
+            // to push character into num_buffer_str in process_key()");  
+            // Convert the u8 in num_buffer to a char and push it into num_buffer_str for display
         }   
         Some(num_buffer_str)  
     }

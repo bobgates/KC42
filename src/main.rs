@@ -177,15 +177,10 @@ async fn main(_spawner: Spawner) {
             }
 
             // info!("Key {:?} pressed", key.unwrap());
-            calc.process_key(key, &num_buffer);  
+            let num_buffer_str = calc.process_key(key, &num_buffer).unwrap();  
             info!("-----");
-            for c in num_buffer.clone().into_iter() {
-                // let d: char = char::from(*c);
+            for c in num_buffer_str.chars(){//}.clone().into_iter() {
                 info!("num_buffer in main contains {}", c)
-                //     text_buffer.push(*c as char).expect("Failed to push number into num_buffer_str in main");  // Convert the u8 in num_buffer to a char and push it into num_buffer_str for display
-                // } else {
-                //     text_buffer.push(char::from(*c)).expect("Failed to push character into num_buffer_str in main");  // Convert the u8 in num_buffer to a char and push it into num_buffer_str for display
-                // }
             } 
             info!("-----");
 
@@ -210,7 +205,7 @@ async fn main(_spawner: Spawner) {
             display.clear(BinaryColor::Off);
             let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
             let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-            // let _ = Text::new(&xtext, Point::new(NUM_LEFT, X_NUM_BOTTOM), font).draw(&mut display);
+            let _ = Text::new(&num_buffer_str, Point::new(NUM_LEFT, X_NUM_BOTTOM), font).draw(&mut display);
             let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
             let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
             // let _ = Text::new(&ytext, Point::new(NUM_LEFT, Y_NUM_BOTTOM), font).draw(&mut display);
