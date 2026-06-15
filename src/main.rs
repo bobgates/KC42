@@ -11,12 +11,14 @@
 
 mod keyboard;
 // use heapless::vec::VecInner;
+use heapless::format;
 use embedded_graphics::mono_font::ascii::FONT_7X13;
-use embedded_graphics::mono_font::iso_8859_2::FONT_5X8;
+// use embedded_graphics::mono_font::iso_8859_2::FONT_5X8;
 // use embassy_rp::peripherals::SPI0;
 use keyboard::Keyboard;
 // use keyboard::KeyName;
 mod calc;
+// mod display;
 // use calc;
 
 // use st7565::modes::GraphicsMode;
@@ -31,6 +33,7 @@ use st7565::displays::DOGL128_6;
 // mod types;
 use core::cell::RefCell;
 use crate::calc::Calc;
+// use crate::display::num_to_string;
 
 use defmt::*;
 use display_interface_spi::SPIInterface;
@@ -86,8 +89,76 @@ const A_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 3*LINE_SPACING;
 
 
 
+// #[embassy_executor::main]
+// async fn main(_spawner: Spawner) {
+//     let p = embassy_rp::init(Default::default());
+
+//     let mut num_buffer: Vec<u8, 64> = Vec::new();
+
+//     num_buffer.push('1' as u8).expect("no worries");
+//     // num_buffer.push('.' as u8).expect("no worries");
+//     num_buffer.push('2' as u8).expect("no worries");
+//     num_buffer.push('3' as u8).expect("no worries");
+//     num_buffer.push('4' as u8).expect("no worries");
+//     num_buffer.push('5' as u8).expect("no worries");
+//     num_buffer.push('5' as u8).expect("no worries");
+
+
+//     for c in &num_buffer {
+//         info!("{}", c);
+//     }
+
+
+//     let n = string_to_number(num_buffer);
+
+//     info!("s_to_n: {}", n);
+
+//     let n = number_to_string(n);
+//     let n=n.unwrap();
+
+
+
+//     for c in n {
+//         info!("{}",c as char);
+//     }
+
+
+
+
+
+//     }
+
+
+
+//     pub fn number_to_string(number: f64)->Option<Vec<u8,64>>{
+//         // todo: put in some error handling
+
+//         let temp_str = format!("{0:.1$e}", number,3).expect("failed to convert number_to_string ");
+//                 // let num_buffer_str: Vec<u8,64> 
+
+//         let r = temp_str.into_bytes();
+
+//         Some(r)
+        
+//     }
+
+//     // Converts the string in self.num_buffer into an f64
+//     pub fn string_to_number(s: Vec<u8, 64>)->f64{ 
+        
+
+//         let s = str::from_utf8(&s);//.try_into().expect("internal error string_to_number")).expect("Failure to convert in string to number");
+//        // todo!("Expand for complex numbers");
+//        let t = s.expect("failed");
+
+//         info!("s to n: [{}]", t);
+
+//         let result: f64 = t.parse().expect("failure to convert in string_to_number");
+//         result
+//     }
+
+
 #[embassy_executor::main]
-async fn main(_spawner: Spawner) {
+async fn main_(_spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
     info!("Started");
 
@@ -118,19 +189,15 @@ async fn main(_spawner: Spawner) {
     display.flush().unwrap();
     display.set_display_on(true).unwrap();
 
-    // let circle =Circle::new(Point::new(50, 50), 20)
-    //     .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 2));
-    // circle.draw(&mut display);
+    // Need to create num_buffer here, pass it in to the keyboard reader,
+    // then get it back from the keyboard reader due to borrowing rules
+    // and nostd
+    // let mut num_buffer: Vec<u8, 64> = Vec::new();
+    // num_buffer.push('_' as u8).expect("Failed to push '_' into num_buffer in main()");
 
-    let mut num_buffer: Vec<u8, 64> = Vec::new();
-    // let mut num_buffer: Vec<_, U8> = Vec::new();  
-    // let mut xs: Vec<_, U8> = Vec::new();
-    num_buffer.push('_' as u8).expect("Failed to push '_' into num_buffer in main()");
-    let mut text_buffer: String<64> = String::new();
 
     let font = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
     let stack_names_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
-
 
     // Keyboard pins
     let row1 = Input::new(p.PIN_2, Pull::Down);
@@ -156,18 +223,21 @@ async fn main(_spawner: Spawner) {
         let mut calc =  Calc::new();
         let mut keyboard = Keyboard::new(rows, cols);
 
-        // keyboard_initialise
+        // This is to put the '_' on the screen on startup
+        let num_buffer_str = "_";//calc.process_key(key).unwrap();
+
 
         // Put something on the display so I know its working...:
         let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
         let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+        let _ = Text::new(&num_buffer_str, Point::new(NUM_LEFT, X_NUM_BOTTOM), font).draw(&mut display);            
         let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
         let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
         let _= Text::new("z", Point::new(NAME_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
         let _ = Text::new(":", Point::new(COLON_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
         let _= Text::new("a", Point::new(NAME_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
         let _ = Text::new(":", Point::new(COLON_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-        display.flush().unwrap();        
+        display.flush().unwrap(); 
 
         loop {
             let key = keyboard.scan().await;
@@ -176,33 +246,10 @@ async fn main(_spawner: Spawner) {
                 continue;
             }
 
-            // info!("Key {:?} pressed", key.unwrap());
-            let num_buffer_str = calc.process_key(key, &num_buffer).unwrap();  
-            info!("-----");
-            for c in num_buffer_str.chars(){//}.clone().into_iter() {
-                info!("num_buffer in main contains {}", c)
-            } 
-            info!("-----");
+            info!("Key {:?} pressed", key.unwrap());
+            let num_buffer_str = calc.process_key(key).unwrap();
 
-
-            // info!("num_buffer for display contains {}", text_buffer.as_str());
-
-            // for i in 0..num_buffer.len() {
-            //     info!("num_buffer[{}] = {}", i, num_buffer[i] as char);
-            // }
-
-            // let ls=15; // line spacing
-            // let (stacky, stackz, stacka)=calc.update_stack_display();
-            // let ytext: String<64> = format!("{}", stacky).unwrap();
-            // let ztext: String<64> = format!("{}", stackz).unwrap();
-            // let atext: String<64> = format!("{}", stacka).unwrap();
-
-            // let ztext = format!("{?}", stackz);
-            // let atext = format!("{?}", stacka);
-
-
-            
-            display.clear(BinaryColor::Off);
+            display.clear(BinaryColor::Off); //on or off makes no difference
             let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
             let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
             let _ = Text::new(&num_buffer_str, Point::new(NUM_LEFT, X_NUM_BOTTOM), font).draw(&mut display);
@@ -222,6 +269,23 @@ async fn main(_spawner: Spawner) {
         }
     }
 }
+
+
+// fn main() {
+    
+//     let mut num_buffer: Vec<u8, 64> = Vec::new();
+
+//     num_buffer.push('1' as u8).expect("no worries");
+//     num_buffer.push('.' as u8).expect("no worries");
+//     num_buffer.push('2' as u8).expect("no worries");
+//     num_buffer.push('3' as u8).expect("no worries");
+//     num_buffer.push('4' as u8).expect("no worries");
+//     num_buffer.push('5' as u8).expect("no worries");
+
+//     for c in num_buffer {
+//         info!("{}", c);
+//     }
+// }
 
 
 

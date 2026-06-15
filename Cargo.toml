@@ -1,3 +1,4 @@
+
 [package]
 name = "dv_26_4"
 version = "0.2.0"
@@ -36,6 +37,7 @@ panic-halt = "1.0.0"
 fugit = "0.3.9"
 embedded-hal-compat = "0.13.0"
 heapless = "0.9.3"
+# num-traits = "0.2.19"    # Causes issues with floating point being double defined
 
 
 

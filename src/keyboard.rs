@@ -1,12 +1,6 @@
 use defmt::{/*error, info, println, warn,*/ Format};
 
-// use embassy_rp as hal;
-// use embassy_executor::Spawner;
-// use embassy_rp::block::ImageDef;
 use embassy_time::Timer;
-// use rp235x_hal::Timer;
-// use embassy_rp::Peripherals;
-// use embassy_rp::gpio::{Pull};//, Level, Input, Output};
 use embassy_rp::{gpio::{Input, Output}};//, multicore::current_core};
 
 // use std::ops::{Index, IndexMut};
