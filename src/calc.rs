@@ -228,14 +228,32 @@ impl Calc {
             UNDERSCORE =>{ entry_buffer.push(b'_').unwrap();
                             // info!("pushed _");      
                     }
-            PLUSMINUS =>{ if entry_buffer[0]==b'-'{
-                            entry_buffer.remove(0);
-                            info!("removed minus");
-                        } else {
-                            entry_buffer.insert(0, b'-').unwrap(); 
-                            info!("added minus");    
-                        }
-                                                    
+            PLUSMINUS =>{ if entry_buffer.contains(&('e' as u8)){
+                            for (p,i) in entry_buffer.clone().into_iter().enumerate(){
+                                if i == 'e' as u8 {
+                                    let c = entry_buffer[p];
+                                    info!("Found '{}' as position p: {}", c as char, p);
+                                    if entry_buffer.len()>p+1{ 
+                                        // let letter = entry_buffer[p+1]; 
+                                        if entry_buffer[p+1] == b'-'{
+                                            entry_buffer.remove(p+1);
+    
+                                        } else {
+                                            entry_buffer.insert(p+1, b'-').unwrap();
+                                         }
+                                    }
+                                    break;
+                                }
+                            }
+                    } else {
+                        if entry_buffer[0]==b'-'{
+                                entry_buffer.remove(0);
+                                info!("removed minus");
+                            } else {
+                                entry_buffer.insert(0, b'-').unwrap(); 
+                                info!("added minus");    
+                            }
+                        }                                   
                     }
             // _ => info!("Number buffer contains {} -  couldn't be cloned", n),
             BACK => {
