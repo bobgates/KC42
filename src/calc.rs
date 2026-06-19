@@ -33,25 +33,43 @@ pub struct Stack{
     x: f64,
     y: f64,
     z: f64,
-    a: f64,
+    t: f64,
+    changed: bool,
 }
 
 impl Stack {
     pub fn new()-> Stack{
-        Stack { x: 0.0, y: 0.0, z: 0.0, a: 0.0 }
+        Stack { x: 0.0, y: 0.0, z: 0.0, t: 0.0, changed: false}
     }
     pub fn push(&mut self) {
-        self.a = self.z;
+        self.t = self.z;
         self.z = self.y;
         self.y = self.x;
+        self.changed = true;
         // Leaves x in y and in x
     }
     pub fn pop(&mut self) {
         self.x = self.y;
         self.y = self.z;
-        self.z = self.a;
+        self.z = self.t;
+        self.changed = true;
         // Leaves a in a and in z
     }
+    pub fn set_changed(&mut self) {
+        self.changed = true;
+    }
+    pub fn changed(&mut self)->bool{
+        self.changed
+    }
+    
+    pub fn fetch(&mut self) -> (f64, f64, f64){
+        (self.y, self.z, self.t)
+    }
+
+    pub fn print(&mut self) {
+        info!("  Y: {}   Z: {}   T: {}", self.y, self.z, self.t);
+    }
+
 }
 
 const DP: u8 = KeyName::DecimalPoint as u8;           // 46 decimal
@@ -80,10 +98,58 @@ pub struct Calc {
     num_has_exponent: bool,
     num_is_negative: bool,
     // num_format: NumFormat,
-    stack: Stack,
+    pub stack: Stack,
+    stack_changed: bool,
     style: MonoTextStyle<'static,BinaryColor>,
     // line: String<40>,
 
+}
+ // Converts the string in self.num_buffer into an f64
+pub fn string_to_number(mut s: Vec<u8, 64>)->f64{ 
+
+    // Remove _ if it is there:
+    let last = s.pop().unwrap();
+    if last != 95 {
+        s.push(last).unwrap();
+    }
+
+    let s = str::from_utf8(&s).unwrap();//.try_into().expect("internal error string_to_number")).expect("Failure to convert in string to number");
+    let t = s;//.expect("failed");
+
+    let result: f64 = t.parse().expect("failure to convert in string_to_number");
+    result
+}
+
+// Takes the entry_buffer, which is a Vec<u8> and converts it to a string that the graphics can use
+pub fn convert_to_string(entry_buffer: Vec<u8, 64>)->Option<String< 64>>{
+    
+    let mut num_buffer_str: String<64> = String::new(); //= Vec::<char, 64>::new();
+
+    for c in entry_buffer.iter() {
+            if *c<=9{
+                let d:u32 = (*c).into();
+                num_buffer_str.push(char::from_digit(d, 10).expect("Failed to push number into num_buffer_str in process_key()")).unwrap();  // Convert the u8 in num_buffer to a char and push it into num_buffer_str for display
+            } else {
+                    let x = match *c  {
+                        // 95 => '_',
+                        // DP => '.',
+                        // E => 'e',
+                        // MINUS => 'A',
+                        PLUSMINUS  => 'B',
+                        UNDERSCORE => '_',
+                        _ => char::from(*c)
+                    };
+                num_buffer_str.push(x).expect("Failed to push character into num_buffer_str in process_key()");
+            }
+        } 
+        Some(num_buffer_str)
+}
+
+    // Converts a number into what fits into num_buffer
+pub fn number_to_string(number: f64)->Option<Vec<u8,64>>{
+    let temp_str = format!("{:e}", number).expect("failed to convert number_to_string ");
+    let r = temp_str.into_bytes();
+    Some(r)
 }
 
 impl Calc {
@@ -93,7 +159,7 @@ impl Calc {
 
     pub unsafe fn new() -> Calc {
 
-        info!("In Calc::new");
+        // info!("In Calc::new");
 
         let style = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
         //static mut LINE: String<40> = String::new(); // Line to hold x number for editing
@@ -110,59 +176,18 @@ impl Calc {
             // num_format: NumFormat::Eng(4),
             editing: true,
             stack: Stack::new(),
+            stack_changed:false,
             style: style,
             // line: String::new(),
         }
     }
 
-    // Converts the string in self.num_buffer into an f64
-    pub fn string_to_number(&self, mut s: Vec<u8, 64>)->f64{ 
-        
-        for a in &s {
-            info!("char:{}|", *a );
-        }
-
-        let last = s.pop().unwrap();
-        info!("last: {}", last);
-        if last != 95 {
-            s.push(last).unwrap();
-        }
-        let mut t = String::<64>::new();
-        t = String::from_utf8(s.clone()).unwrap();
-
-
-        // for a in t.into_iter(){
-        //     info!(": {}", a);    
-        // };
-
-
-
-        let s = str::from_utf8(&s).unwrap();//.try_into().expect("internal error string_to_number")).expect("Failure to convert in string to number");
-        info!("s: {}", s);
-
-       
-       // todo!("Expand for complex numbers");
-        info!("reset");
-       let t = s;//.expect("failed");
-       info!("t: {}", t);
-
-        info!("s to n: [{}]", t);
-
-        let result: f64 = t.parse().expect("failure to convert in string_to_number");
-        result
+    pub fn stack_changed(self)->bool{
+        self.stack_changed
     }
 
-    // Converts a number into what fits into num_buffer
-    pub fn number_to_string(&self, number: f64)->Option<Vec<u8,64>>{
-        // todo: put in some error handling
-
-        let temp_str = format!("{:e}", number).expect("failed to convert number_to_string ");
-                // let num_buffer_str: Vec<u8,64> 
-
-        let r = temp_str.into_bytes();
-
-        Some(r)
-        
+    pub fn fetch_stack(self)-> (f64,f64,f64){
+        (self.stack.y, self.stack.z, self.stack.t, )
     }
 
     // Takes a key stroke and figures out what to do with it
@@ -179,7 +204,7 @@ impl Calc {
         match key as u8 {
             n @ 0..=9 => {
                         if !entry_buffer.contains(&('_' as u8)) { // We're starting a new number, so clear the buffer and put the _ back in
-                            info!("Starting new number");
+                            // info!("Starting new number");
                             entry_buffer.clear();
                             entry_buffer.push(n+48).expect("failed to push digit into entry_buffer in process_key()");  // Add the digit to the buffer
                             entry_buffer.push('_' as u8).expect("Failed to push '_' into entry_buffer in process_key()");  // Put the _ back in so it shows on the display
@@ -205,22 +230,22 @@ impl Calc {
                         }
                     }
             ENTER => { self.editing = false;
-                info!("ENTER: numbuffer: {}", entry_buffer.as_slice());
-                        let lc = self.string_to_number(entry_buffer.clone());
-                        info!("number: {}", lc);
-                        let last = entry_buffer.pop().unwrap();
-                        info!("last: {}", last);
-                        if last != '_' as u8 {
-                            entry_buffer.push(last);
-                        }
+                    // info!("ENTER: numbuffer: {}", entry_buffer.as_slice());
 
-                info!("after filter: {}", entry_buffer.as_slice());
-
-                        self.stack.x = self.string_to_number(entry_buffer.clone());
-                        self.stack.push();
-                        entry_buffer = self.number_to_string(self.stack.x).expect("Failed to convert in process_key"); // Takes stack.x and formats it for display
+                    let lc = string_to_number(entry_buffer.clone());
+                    // info!("number: {}", lc);
+                    let last = entry_buffer.pop().unwrap();
+                    // info!("last: {}", last);
+                    if last != '_' as u8 {
+                        entry_buffer.push(last);
                     }
-            E => {info!("pushed e"); 
+
+                    self.stack.x = string_to_number(entry_buffer.clone());
+                    self.stack.push();
+                    self.stack.set_changed();
+                    entry_buffer = number_to_string(self.stack.x).expect("Failed to convert in process_key"); // Takes stack.x and formats it for display
+                }
+            E => {//info!("pushed e"); 
                     if !entry_buffer.contains(&('e' as u8)){
                         entry_buffer.insert(entry_buffer.len()-1, 'e' as u8).expect("Failed to insert E into entry_buffer in process_key()");     
                     }   
@@ -288,42 +313,17 @@ impl Calc {
             _ => info!("not yet implemented for {}", key as u8),
 
         };
-                // let t = last.expect("Failed to pop from line");
-        info!("first entry_buffer contains {} after processing number key", entry_buffer.as_slice());
 
-        // Transfer self.num_buffer into a Vec<u8,64> for display. 
         // This is a bit convoluted but it allows us to keep the num_buffer as a Vec<u8,64> 
         // for editing and then convert it to a String for display and back to a Vec<u8,64> to return it.  
 
-        self.num_buffer = entry_buffer.clone();
+        self.num_buffer = entry_buffer.clone(); // Vec<u8>
 
-        self.convert_to_string(entry_buffer)
+        convert_to_string(entry_buffer) // String for display
 
     }    
      
-    pub fn convert_to_string(&self, entry_buffer: Vec<u8, 64>)->Option<String< 64>>{
-        
-        let mut num_buffer_str: String<64> = String::new(); //= Vec::<char, 64>::new();
 
-        for c in entry_buffer.iter() {
-                if *c<=9{
-                    let d:u32 = (*c).into();
-                    num_buffer_str.push(char::from_digit(d, 10).expect("Failed to push number into num_buffer_str in process_key()")).unwrap();  // Convert the u8 in num_buffer to a char and push it into num_buffer_str for display
-                } else {
-                        let x = match *c  {
-                           // 95 => '_',
-                            // DP => '.',
-                            // E => 'e',
-                            // MINUS => 'A',
-                            PLUSMINUS  => 'B',
-                            UNDERSCORE => '_',
-                            _ => char::from(*c)
-                        };
-                    num_buffer_str.push(x).expect("Failed to push character into num_buffer_str in process_key()");
-                }
-            } 
-            Some(num_buffer_str)
-    }
 
 }
 

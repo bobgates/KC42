@@ -246,7 +246,9 @@ async fn main_(_spawner: Spawner) {
                 continue;
             }
 
-            info!("Key {:?} pressed", key.unwrap());
+            // c = calc.stack;
+
+            // info!("Key {:?} pressed", key.unwrap());
             let num_buffer_str = calc.process_key(key).unwrap();
 
             display.clear(BinaryColor::Off); //on or off makes no difference
@@ -263,29 +265,16 @@ async fn main_(_spawner: Spawner) {
             let _ = Text::new(":", Point::new(COLON_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
             // let _ = Text::new(&atext, Point::new(NUM_LEFT, A_NUM_BOTTOM), font).draw(&mut display);
             
+            if calc.stack.changed(){
+                calc.stack.print();
+
+            }
                 // info!("inside display clear and x code");
         
             display.flush().unwrap();
         }
     }
 }
-
-
-// fn main() {
-    
-//     let mut num_buffer: Vec<u8, 64> = Vec::new();
-
-//     num_buffer.push('1' as u8).expect("no worries");
-//     num_buffer.push('.' as u8).expect("no worries");
-//     num_buffer.push('2' as u8).expect("no worries");
-//     num_buffer.push('3' as u8).expect("no worries");
-//     num_buffer.push('4' as u8).expect("no worries");
-//     num_buffer.push('5' as u8).expect("no worries");
-
-//     for c in num_buffer {
-//         info!("{}", c);
-//     }
-// }
 
 
 
