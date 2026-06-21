@@ -154,7 +154,7 @@ async fn main_(_spawner: Spawner) {
         let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
         let _= Text::new("z", Point::new(NAME_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
         let _ = Text::new(":", Point::new(COLON_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-        let _= Text::new("a", Point::new(NAME_LEFT, T_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+        let _= Text::new("t", Point::new(NAME_LEFT, T_LABEL_BOTTOM), stack_names_font).draw(&mut display);
         let _ = Text::new(":", Point::new(COLON_LEFT, T_LABEL_BOTTOM), stack_names_font).draw(&mut display);
         display.flush().unwrap(); 
 
@@ -170,16 +170,19 @@ async fn main_(_spawner: Spawner) {
 
 
 
+// Could optimise to only update most of display only when stack changes, but not yet. (POITROAE)
             if calc.stack.changed(){
                 info!("Stack changed");
-
-
             };
 
-            let (y_val, z_val, t_val) = calc.stack.fetch_values();
+            let (x_val, y_val, z_val, t_val) = calc.stack.fetch_values();
+            // info!("x buffer: {}, x: {}, y: {}, z: {} t: {}",x_buffer_str, x_val, y_val, z_val, t_val);
+
+            let x_str: String<64> = format!("{:e}", x_val).expect("failed to convert number_to_string ");
             let y_str: String<64> = format!("{:e}", y_val).expect("failed to convert number_to_string ");
             let z_str: String<64> = format!("{:e}", z_val).expect("failed to convert number_to_string ");
-            let t_str: String<64> = format!("{:e}", z_val).expect("failed to convert number_to_string ");
+            let t_str: String<64> = format!("{:e}", t_val).expect("failed to convert number_to_string ");
+
             
             display.clear(BinaryColor::Off); //on or off makes no difference
             let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
@@ -191,11 +194,12 @@ async fn main_(_spawner: Spawner) {
             let _= Text::new("z", Point::new(NAME_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
             let _ = Text::new(":", Point::new(COLON_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
             let _ = Text::new(&z_str, Point::new(NUM_LEFT, Z_NUM_BOTTOM), font).draw(&mut display);
-            let _= Text::new("a", Point::new(NAME_LEFT, T_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+            let _= Text::new("t", Point::new(NAME_LEFT, T_LABEL_BOTTOM), stack_names_font).draw(&mut display);
             let _ = Text::new(":", Point::new(COLON_LEFT, T_LABEL_BOTTOM), stack_names_font).draw(&mut display);
             let _ = Text::new(&t_str, Point::new(NUM_LEFT, T_NUM_BOTTOM), font).draw(&mut display);
-                
+            
             display.flush().unwrap();
+            info!("End of key loop");
         }
     };
 }

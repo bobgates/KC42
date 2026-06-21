@@ -47,6 +47,7 @@ impl Stack {
         self.t = self.z;
         self.z = self.y;
         self.y = self.x;
+        // self.x = entry;   /
         self.changed = true;
         // Leaves x in y and in x
     }
@@ -64,8 +65,8 @@ impl Stack {
         self.changed
     }
     
-    pub fn fetch_values(&mut self) -> (f64, f64, f64){
-        (self.y, self.z, self.t)
+    pub fn fetch_values(&mut self) -> (f64, f64, f64, f64){
+        (self.x, self.y, self.z, self.t)
     }
 
     pub fn fetch_strs(&mut self) -> (Vec<u8,64>, &str, &str){
@@ -96,6 +97,11 @@ const UNDERSCORE: u8 = '_' as u8;   // 95
 const BACK: u8 = KeyName::Back as u8;  // 66 decimal
 const PLUSMINUS: u8 = KeyName::PlusMinus as u8;  // 30 decimal
 const ENTER: u8 =KeyName::Enter as u8;
+const PLUS: u8 = KeyName::Plus as u8;
+const MINUS: u8 = KeyName::Minus as u8;
+const TIMES: u8 = KeyName::Multiply as u8;
+const DIVIDE: u8 = KeyName::Divide as u8;
+
 
 
 // Format for the display of numbers. It can be one of those below.
@@ -228,7 +234,7 @@ impl Calc {
 
     // Takes a key stroke and figures out what to do with it
     pub fn process_key<'a>(&mut self, key: Option<KeyName>)->Option<String::<64>>{
-
+        let mut new_calc: bool = false;
 
         let key = match key{
             None => return None,
@@ -268,7 +274,7 @@ impl Calc {
             ENTER => { self.editing = false;
                     // info!("ENTER: numbuffer: {}", entry_buffer.as_slice());
 
-                    let lc = string_to_number(entry_buffer.clone());
+                    // let lc = string_to_number(entry_buffer.clone());
 
                     // check if we're in editing mode -last char is '_'. 
                     // If so, remove '_'
@@ -319,6 +325,24 @@ impl Calc {
                         }                                   
                     }
             // _ => info!("Number buffer contains {} -  couldn't be cloned", n),
+
+            PLUS => { 
+                // Take what is in the entry buffer, add it to what is in the 
+                // bottom of the stack and replace the bottom of the stack
+                // info!("Plus hit, entry buffer contains:");
+                // for key in entry_buffer.clone(){
+                //     info!("{}",key as char);
+                // }
+                let entry = string_to_number(entry_buffer.clone());
+                // info!("entry is: {}", entry);
+                // should still be old value:
+                // info!("old x value is {}", self.stack.x);
+                // stack still contains previous number, so use it:
+                self.stack.pop();
+                self.stack.x = self.stack.x+entry;
+                // info!("updated value is {}", self.stack.x);
+                entry_buffer = number_to_string(self.stack.x).expect("Failed to convert in process_key"); // Takes stack.x and formats it for display
+            }
             BACK => {
                 info!("back pressed");
                 if entry_buffer.len()>1{
