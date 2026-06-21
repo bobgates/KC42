@@ -7,37 +7,16 @@
 // Plan: get the calculator crate to return an enum of Styles, and 
 // then just print them to the screen here.
 
-// mod core::mem::MaybeUninit;
-
-mod keyboard;
-// use heapless::vec::VecInner;
-use heapless::format;
-use embedded_graphics::mono_font::ascii::FONT_7X13;
-// use embedded_graphics::mono_font::iso_8859_2::FONT_5X8;
-// use embassy_rp::peripherals::SPI0;
-use keyboard::Keyboard;
-// use keyboard::KeyName;
 mod calc;
-// mod display;
-// use calc;
+use crate::calc::{Calc, Stack, string_to_number, convert_to_string};
 
-// use st7565::modes::GraphicsMode;
-// mod screen;
-// use screen::{Screen};
-
-use st7565::{GraphicsPageBuffer};
-use st7565::displays::DOGL128_6;
-// use st7565::modes::GraphicsMode;
-// mod logic;
-
-// mod types;
 use core::cell::RefCell;
-use crate::calc::Calc;
-// use crate::display::num_to_string;
+use core::mem::MaybeUninit;
 
 use defmt::*;
+
 use display_interface_spi::SPIInterface;
-// use embassy_rp as hal;
+
 use embassy_rp::gpio::Output;
 use embassy_rp::gpio::{Input, Level, Pull};
 // use embassy_rp::{Peri, Peripherals};
@@ -47,24 +26,29 @@ use embassy_rp::spi::{Blocking, Spi};
 use embassy_rp::spi;
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
-// use embassy_sync::channel::Channel;
 use embassy_time::Delay;
 use embassy_time::Timer;
 use embassy_rp::peripherals::{ SPI0};
-//PIN_18, PIN_19, PIN_20, PIN_21, PIN_27, PIN_28,
 
 use embedded_graphics::{prelude::*, text};
 use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
 use embedded_graphics::mono_font::{ascii::FONT_10X20, MonoTextStyle};
 use embedded_graphics::text::Text;
 use embedded_graphics::pixelcolor::BinaryColor;
+use embedded_graphics::mono_font::ascii::FONT_7X13;
 
 use heapless::{String, Vec};
+use heapless::vec::VecInner;
+
+mod keyboard;
+use keyboard::Keyboard;
+use heapless::format;
+
+use st7565::{GraphicsPageBuffer};
+use st7565::displays::DOGL128_6;
 
 
 use {defmt_rtt as _, panic_probe as _};
-// use st7565::types::{BoosterRatio, PowerControlMode};
-// use embedded_hal::blocking::spi::Transfer;
 
 // use types::DisplaySpecs;
 // const DISPLAY_FREQ: u32 = 20_000_000;  
@@ -76,85 +60,13 @@ const LINE_SPACING: i32 = 15;
 const X_NUM_BOTTOM: i32 = 62;
 const Y_NUM_BOTTOM: i32 = X_NUM_BOTTOM - LINE_SPACING;
 const Z_NUM_BOTTOM: i32 = X_NUM_BOTTOM - 2*LINE_SPACING;
-const A_NUM_BOTTOM: i32 = X_NUM_BOTTOM - 3*LINE_SPACING;
+const T_NUM_BOTTOM: i32 = X_NUM_BOTTOM - 3*LINE_SPACING;
 const X_LABEL_BOTTOM: i32 = 59;
 const Y_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - LINE_SPACING;
 const Z_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 2*LINE_SPACING;
-const A_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 3*LINE_SPACING;
+const T_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 3*LINE_SPACING;
 
 
-// (1, 59-ls), stack_font).draw(&mut display);
-//                 let _ = Text::new(":", Point::new(6, 59-ls), stack_font).draw(&mut display);
-//                 let _ = Text::new(&text, Point::new(12, 62-ls),
-
-
-
-// #[embassy_executor::main]
-// async fn main(_spawner: Spawner) {
-//     let p = embassy_rp::init(Default::default());
-
-//     let mut num_buffer: Vec<u8, 64> = Vec::new();
-
-//     num_buffer.push('1' as u8).expect("no worries");
-//     // num_buffer.push('.' as u8).expect("no worries");
-//     num_buffer.push('2' as u8).expect("no worries");
-//     num_buffer.push('3' as u8).expect("no worries");
-//     num_buffer.push('4' as u8).expect("no worries");
-//     num_buffer.push('5' as u8).expect("no worries");
-//     num_buffer.push('5' as u8).expect("no worries");
-
-
-//     for c in &num_buffer {
-//         info!("{}", c);
-//     }
-
-
-//     let n = string_to_number(num_buffer);
-
-//     info!("s_to_n: {}", n);
-
-//     let n = number_to_string(n);
-//     let n=n.unwrap();
-
-
-
-//     for c in n {
-//         info!("{}",c as char);
-//     }
-
-
-
-
-
-//     }
-
-
-
-//     pub fn number_to_string(number: f64)->Option<Vec<u8,64>>{
-//         // todo: put in some error handling
-
-//         let temp_str = format!("{0:.1$e}", number,3).expect("failed to convert number_to_string ");
-//                 // let num_buffer_str: Vec<u8,64> 
-
-//         let r = temp_str.into_bytes();
-
-//         Some(r)
-        
-//     }
-
-//     // Converts the string in self.num_buffer into an f64
-//     pub fn string_to_number(s: Vec<u8, 64>)->f64{ 
-        
-
-//         let s = str::from_utf8(&s);//.try_into().expect("internal error string_to_number")).expect("Failure to convert in string to number");
-//        // todo!("Expand for complex numbers");
-//        let t = s.expect("failed");
-
-//         info!("s to n: [{}]", t);
-
-//         let result: f64 = t.parse().expect("failure to convert in string_to_number");
-//         result
-//     }
 
 
 #[embassy_executor::main]
@@ -170,6 +82,11 @@ async fn main_(_spawner: Spawner) {
     let clk = p.PIN_18;
     let reset  = p.PIN_28;
     let a0 = p.PIN_27;
+
+    // let x_buffer : &str ="";
+    let y_buffer : &str ="";
+    let z_buffer : &str ="";
+    let t_buffer : &str ="";
 
     let mut reset = Output::new(reset, Level::Low);
     let a0 = Output::new(a0, Level::Low);   
@@ -219,6 +136,8 @@ async fn main_(_spawner: Spawner) {
     let rows = [row1, row2, row3, row4, row5, row6, row7, row8];
     let cols = [col1, col2, col3, col4, col5, col6];
 
+    let _buffer_string = 
+
     unsafe {
         let mut calc =  Calc::new();
         let mut keyboard = Keyboard::new(rows, cols);
@@ -235,8 +154,8 @@ async fn main_(_spawner: Spawner) {
         let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
         let _= Text::new("z", Point::new(NAME_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
         let _ = Text::new(":", Point::new(COLON_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-        let _= Text::new("a", Point::new(NAME_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-        let _ = Text::new(":", Point::new(COLON_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+        let _= Text::new("a", Point::new(NAME_LEFT, T_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+        let _ = Text::new(":", Point::new(COLON_LEFT, T_LABEL_BOTTOM), stack_names_font).draw(&mut display);
         display.flush().unwrap(); 
 
         loop {
@@ -246,34 +165,39 @@ async fn main_(_spawner: Spawner) {
                 continue;
             }
 
-            // c = calc.stack;
+            // Gets updated and later printed for each character entered
+            let x_buffer_str = calc.process_key(key).unwrap();
 
-            // info!("Key {:?} pressed", key.unwrap());
-            let num_buffer_str = calc.process_key(key).unwrap();
 
+
+            if calc.stack.changed(){
+                info!("Stack changed");
+
+
+            };
+
+            let (y_val, z_val, t_val) = calc.stack.fetch_values();
+            let y_str: String<64> = format!("{:e}", y_val).expect("failed to convert number_to_string ");
+            let z_str: String<64> = format!("{:e}", z_val).expect("failed to convert number_to_string ");
+            let t_str: String<64> = format!("{:e}", z_val).expect("failed to convert number_to_string ");
+            
             display.clear(BinaryColor::Off); //on or off makes no difference
             let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
             let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-            let _ = Text::new(&num_buffer_str, Point::new(NUM_LEFT, X_NUM_BOTTOM), font).draw(&mut display);
+            let _ = Text::new(&x_buffer_str, Point::new(NUM_LEFT, X_NUM_BOTTOM), font).draw(&mut display);
             let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
             let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-            // let _ = Text::new(&ytext, Point::new(NUM_LEFT, Y_NUM_BOTTOM), font).draw(&mut display);
+            let _ = Text::new(&y_str, Point::new(NUM_LEFT, Y_NUM_BOTTOM), font).draw(&mut display);
             let _= Text::new("z", Point::new(NAME_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
             let _ = Text::new(":", Point::new(COLON_LEFT, Z_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-            // let _ = Text::new(&ztext, Point::new(NUM_LEFT, Z_NUM_BOTTOM), font).draw(&mut display);
-            let _= Text::new("a", Point::new(NAME_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-            let _ = Text::new(":", Point::new(COLON_LEFT, A_LABEL_BOTTOM), stack_names_font).draw(&mut display);
-            // let _ = Text::new(&atext, Point::new(NUM_LEFT, A_NUM_BOTTOM), font).draw(&mut display);
-            
-            if calc.stack.changed(){
-                calc.stack.print();
-
-            }
-                // info!("inside display clear and x code");
-        
+            let _ = Text::new(&z_str, Point::new(NUM_LEFT, Z_NUM_BOTTOM), font).draw(&mut display);
+            let _= Text::new("a", Point::new(NAME_LEFT, T_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+            let _ = Text::new(":", Point::new(COLON_LEFT, T_LABEL_BOTTOM), stack_names_font).draw(&mut display);
+            let _ = Text::new(&t_str, Point::new(NUM_LEFT, T_NUM_BOTTOM), font).draw(&mut display);
+                
             display.flush().unwrap();
         }
-    }
+    };
 }
 
 

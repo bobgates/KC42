@@ -23,12 +23,14 @@ use heapless::String;
 // use heapless::string::StringInner;
 // use heapless::Vec as VecStorage;
 use heapless::format;
+use heapless::string;
 // use std::vec::Vec;
 use crate::keyboard::KeyName;
 use crate::keyboard::KeyName::DecimalPoint;
 
 use defmt::info;
 
+#[derive(Copy, Clone)]
 pub struct Stack{
     x: f64,
     y: f64,
@@ -62,9 +64,24 @@ impl Stack {
         self.changed
     }
     
-    pub fn fetch(&mut self) -> (f64, f64, f64){
+    pub fn fetch_values(&mut self) -> (f64, f64, f64){
         (self.y, self.z, self.t)
     }
+
+    pub fn fetch_strs(&mut self) -> (Vec<u8,64>, &str, &str){
+
+        let y_str: Vec<u8,64> = number_to_string(self.y).unwrap().clone();
+        // let y = string_to_number(y_str);
+
+    // let y_str = format!("{:e}", self.y).expect("failed to convert number_to_string ");
+    // let r = y_str.into_bytes();
+   
+        
+
+        (y_str, "0.0", "0.0")
+    }
+
+
 
     pub fn print(&mut self) {
         info!("  Y: {}   Z: {}   T: {}", self.y, self.z, self.t);
@@ -190,6 +207,25 @@ impl Calc {
         (self.stack.y, self.stack.z, self.stack.t, )
     }
 
+    // pub fn fetch_stack_str(self, entry_buffer:  Vec<u8,64>)-> String<64> {
+    //     let number = string_to_number(entry_buffer.clone());
+
+    //     // number_to_string(number).expect("Failed to convert in process_key")
+    // }
+
+
+                    //     let lc = string_to_number(entry_buffer.clone());
+
+                    // // check if we're in editing mode -last char is '_'. 
+                    // // If so, remove '_'
+                    // let last = entry_buffer.pop().unwrap();
+                    // info!("last: {}", last);
+                    // if last != '_' as u8 {
+                    //     entry_buffer.push(last);
+                    // }
+
+                    // self.stack.x = string_to_number(entry_buffer.clone());
+
     // Takes a key stroke and figures out what to do with it
     pub fn process_key<'a>(&mut self, key: Option<KeyName>)->Option<String::<64>>{
 
@@ -233,9 +269,11 @@ impl Calc {
                     // info!("ENTER: numbuffer: {}", entry_buffer.as_slice());
 
                     let lc = string_to_number(entry_buffer.clone());
-                    // info!("number: {}", lc);
+
+                    // check if we're in editing mode -last char is '_'. 
+                    // If so, remove '_'
                     let last = entry_buffer.pop().unwrap();
-                    // info!("last: {}", last);
+                    info!("last: {}", last);
                     if last != '_' as u8 {
                         entry_buffer.push(last);
                     }
