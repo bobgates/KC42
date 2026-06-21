@@ -70,9 +70,9 @@ static ROW_COL_MAP: [[KeyName; 6]; 8] = [
     [KeyName::Fn1, KeyName::Fn2, KeyName::Fn3, KeyName::Fn4, KeyName::Fn5, KeyName::Fn6]
 ];
 
-struct KeyCount {
+// struct KeyCount {
 
-}
+// }
 
 pub struct Keyboard{
 

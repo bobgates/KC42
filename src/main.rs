@@ -8,10 +8,11 @@
 // then just print them to the screen here.
 
 mod calc;
-use crate::calc::{Calc, Stack, string_to_number, convert_to_string};
+use crate::calc::{Calc};//, Stack, string_to_number, convert_to_string};
+mod stack;
 
 use core::cell::RefCell;
-use core::mem::MaybeUninit;
+// use core::mem::MaybeUninit;
 
 use defmt::*;
 
@@ -30,16 +31,16 @@ use embassy_time::Delay;
 use embassy_time::Timer;
 use embassy_rp::peripherals::{ SPI0};
 
-use embedded_graphics::{prelude::*, text};
-use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
+use embedded_graphics::{prelude::*};//, text};
+// use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
 use embedded_graphics::mono_font::{ascii::FONT_10X20, MonoTextStyle};
 use embedded_graphics::text::Text;
 use embedded_graphics::pixelcolor::BinaryColor;
 use embedded_graphics::mono_font::ascii::FONT_7X13;
 
-use heapless::{String, Vec};
-use heapless::vec::VecInner;
-
+use heapless::{String};//, Vec};
+// use heapless::vec::VecInner;
+ 
 mod keyboard;
 use keyboard::Keyboard;
 use heapless::format;
@@ -69,6 +70,7 @@ const T_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 3*LINE_SPACING;
 
 
 
+
 #[embassy_executor::main]
 async fn main_(_spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
@@ -84,9 +86,9 @@ async fn main_(_spawner: Spawner) {
     let a0 = p.PIN_27;
 
     // let x_buffer : &str ="";
-    let y_buffer : &str ="";
-    let z_buffer : &str ="";
-    let t_buffer : &str ="";
+    // let y_buffer : &str ="";
+    // let z_buffer : &str ="";
+    // let t_buffer : &str ="";
 
     let mut reset = Output::new(reset, Level::Low);
     let a0 = Output::new(a0, Level::Low);   
@@ -171,14 +173,14 @@ async fn main_(_spawner: Spawner) {
 
 
 // Could optimise to only update most of display only when stack changes, but not yet. (POITROAE)
-            if calc.stack.changed(){
-                info!("Stack changed");
-            };
+            // if calc.stack.changed(){
+            //     info!("Stack changed");
+            // };
 
-            let (x_val, y_val, z_val, t_val) = calc.stack.fetch_values();
+            let (_x_val, y_val, z_val, t_val) = calc.stack.fetch_values();
             // info!("x buffer: {}, x: {}, y: {}, z: {} t: {}",x_buffer_str, x_val, y_val, z_val, t_val);
 
-            let x_str: String<64> = format!("{:e}", x_val).expect("failed to convert number_to_string ");
+            // let x_str: String<64> = format!("{:e}", x_val).expect("failed to convert number_to_string ");
             let y_str: String<64> = format!("{:e}", y_val).expect("failed to convert number_to_string ");
             let z_str: String<64> = format!("{:e}", z_val).expect("failed to convert number_to_string ");
             let t_str: String<64> = format!("{:e}", t_val).expect("failed to convert number_to_string ");
@@ -199,7 +201,7 @@ async fn main_(_spawner: Spawner) {
             let _ = Text::new(&t_str, Point::new(NUM_LEFT, T_NUM_BOTTOM), font).draw(&mut display);
             
             display.flush().unwrap();
-            info!("End of key loop");
+            // info!("End of key loop");
         }
     };
 }

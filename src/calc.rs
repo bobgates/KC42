@@ -7,7 +7,7 @@
 
 use core::char;
 use core::f64;
-use core::num;
+// use core::num;
 // use core::num;
 // use cortex_m::peripheral::nvic;
 // use core::ops::range;
@@ -23,72 +23,13 @@ use heapless::String;
 // use heapless::string::StringInner;
 // use heapless::Vec as VecStorage;
 use heapless::format;
-use heapless::string;
+// use heapless::string;
 // use std::vec::Vec;
 use crate::keyboard::KeyName;
-use crate::keyboard::KeyName::DecimalPoint;
+use crate::stack::Stack;
+// use crate::keyboard::KeyName::DecimalPoint;
 
 use defmt::info;
-
-#[derive(Copy, Clone)]
-pub struct Stack{
-    x: f64,
-    y: f64,
-    z: f64,
-    t: f64,
-    changed: bool,
-}
-
-impl Stack {
-    pub fn new()-> Stack{
-        Stack { x: 0.0, y: 0.0, z: 0.0, t: 0.0, changed: false}
-    }
-    pub fn push(&mut self) {
-        self.t = self.z;
-        self.z = self.y;
-        self.y = self.x;
-        // self.x = entry;   /
-        self.changed = true;
-        // Leaves x in y and in x
-    }
-    pub fn pop(&mut self) {
-        self.x = self.y;
-        self.y = self.z;
-        self.z = self.t;
-        self.changed = true;
-        // Leaves a in a and in z
-    }
-    pub fn set_changed(&mut self) {
-        self.changed = true;
-    }
-    pub fn changed(&mut self)->bool{
-        self.changed
-    }
-    
-    pub fn fetch_values(&mut self) -> (f64, f64, f64, f64){
-        (self.x, self.y, self.z, self.t)
-    }
-
-    pub fn fetch_strs(&mut self) -> (Vec<u8,64>, &str, &str){
-
-        let y_str: Vec<u8,64> = number_to_string(self.y).unwrap().clone();
-        // let y = string_to_number(y_str);
-
-    // let y_str = format!("{:e}", self.y).expect("failed to convert number_to_string ");
-    // let r = y_str.into_bytes();
-   
-        
-
-        (y_str, "0.0", "0.0")
-    }
-
-
-
-    pub fn print(&mut self) {
-        info!("  Y: {}   Z: {}   T: {}", self.y, self.z, self.t);
-    }
-
-}
 
 const DP: u8 = KeyName::DecimalPoint as u8;           // 46 decimal
 const E: u8 =  KeyName::E as u8;    // 69 decimal
@@ -101,31 +42,25 @@ const PLUS: u8 = KeyName::Plus as u8;
 const MINUS: u8 = KeyName::Minus as u8;
 const TIMES: u8 = KeyName::Multiply as u8;
 const DIVIDE: u8 = KeyName::Divide as u8;
+const XSWAPY: u8 = KeyName::XswapY as u8;
 
 
 
 // Format for the display of numbers. It can be one of those below.
 // The numeric parameter is the number of decimal points
-enum NumFormat {
+// enum NumFormat {
    //  Eng(u8),
 //     Sci(u8),
 //     Fix(u8),
-}
+// }
 
 
 pub struct Calc {
-    // num_buffer: Vec<u8, 20>,  // Holds the numbers while they're being entered
     num_buffer: Vec<u8,64>,
     num_has_point: bool,        // Track if num_buffer has a decimal point in it
     editing: bool,
     num_has_exponent: bool,
-    num_is_negative: bool,
-    // num_format: NumFormat,
     pub stack: Stack,
-    stack_changed: bool,
-    style: MonoTextStyle<'static,BinaryColor>,
-    // line: String<40>,
-
 }
  // Converts the string in self.num_buffer into an f64
 pub fn string_to_number(mut s: Vec<u8, 64>)->f64{ 
@@ -137,9 +72,9 @@ pub fn string_to_number(mut s: Vec<u8, 64>)->f64{
     }
 
     let s = str::from_utf8(&s).unwrap();//.try_into().expect("internal error string_to_number")).expect("Failure to convert in string to number");
-    let t = s;//.expect("failed");
+    // let t = s;//.expect("failed");
 
-    let result: f64 = t.parse().expect("failure to convert in string_to_number");
+    let result: f64 = s.parse().expect("failure to convert in string_to_number");
     result
 }
 
@@ -182,10 +117,7 @@ impl Calc {
 
     pub unsafe fn new() -> Calc {
 
-        // info!("In Calc::new");
-
-        let style = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
-        //static mut LINE: String<40> = String::new(); // Line to hold x number for editing
+        let _style = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
 
         let mut num_buffer = Vec::<u8,64>::new();
         num_buffer.push('_' as u8).expect("Failed to push '_' into num_buffer in Calc::new()");
@@ -195,46 +127,16 @@ impl Calc {
             num_buffer,    // A text line used for editing and converted to a number
             num_has_point: false,
             num_has_exponent: false,
-            num_is_negative: false,
+            // num_is_negative: false,
             // num_format: NumFormat::Eng(4),
             editing: true,
             stack: Stack::new(),
-            stack_changed:false,
-            style: style,
-            // line: String::new(),
         }
     }
 
-    pub fn stack_changed(self)->bool{
-        self.stack_changed
-    }
-
-    pub fn fetch_stack(self)-> (f64,f64,f64){
-        (self.stack.y, self.stack.z, self.stack.t, )
-    }
-
-    // pub fn fetch_stack_str(self, entry_buffer:  Vec<u8,64>)-> String<64> {
-    //     let number = string_to_number(entry_buffer.clone());
-
-    //     // number_to_string(number).expect("Failed to convert in process_key")
-    // }
-
-
-                    //     let lc = string_to_number(entry_buffer.clone());
-
-                    // // check if we're in editing mode -last char is '_'. 
-                    // // If so, remove '_'
-                    // let last = entry_buffer.pop().unwrap();
-                    // info!("last: {}", last);
-                    // if last != '_' as u8 {
-                    //     entry_buffer.push(last);
-                    // }
-
-                    // self.stack.x = string_to_number(entry_buffer.clone());
-
     // Takes a key stroke and figures out what to do with it
     pub fn process_key<'a>(&mut self, key: Option<KeyName>)->Option<String::<64>>{
-        let mut new_calc: bool = false;
+        // let mut new_calc: bool = false;
 
         let key = match key{
             None => return None,
@@ -248,8 +150,16 @@ impl Calc {
                         if !entry_buffer.contains(&('_' as u8)) { // We're starting a new number, so clear the buffer and put the _ back in
                             // info!("Starting new number");
                             entry_buffer.clear();
+                            // self.stack.push();
                             entry_buffer.push(n+48).expect("failed to push digit into entry_buffer in process_key()");  // Add the digit to the buffer
                             entry_buffer.push('_' as u8).expect("Failed to push '_' into entry_buffer in process_key()");  // Put the _ back in so it shows on the display
+// Need to look at line above and act appropriately
+
+// There's an issue here with, when a new number is started, the number in x should be moved into y.
+
+
+
+
                             self.editing = true;
                         } else {    
                             // info!("pushing number in// We're in the middle of editing a number, so just add the digit to the buffer
@@ -271,23 +181,26 @@ impl Calc {
                             info!("Found ")
                         }
                     }
+            XSWAPY => { if !entry_buffer.contains(&('_' as u8)){
+                        self.stack.swapxy();
+                } else {
+                    self.stack.swapx_with_new_y(string_to_number(entry_buffer.clone()));
+                    let temp =  string_to_number(entry_buffer.clone());
+                    info!("Swapping --------- {}=temp", temp);
+                }
+            }
             ENTER => { self.editing = false;
-                    // info!("ENTER: numbuffer: {}", entry_buffer.as_slice());
 
-                    // let lc = string_to_number(entry_buffer.clone());
-
-                    // check if we're in editing mode -last char is '_'. 
-                    // If so, remove '_'
                     let last = entry_buffer.pop().unwrap();
                     info!("last: {}", last);
                     if last != '_' as u8 {
-                        entry_buffer.push(last);
+                        let _ = entry_buffer.push(last).expect("This should have pushed the last item pulled above");
                     }
 
-                    self.stack.x = string_to_number(entry_buffer.clone());
-                    self.stack.push();
-                    self.stack.set_changed();
-                    entry_buffer = number_to_string(self.stack.x).expect("Failed to convert in process_key"); // Takes stack.x and formats it for display
+                    let x = string_to_number(entry_buffer.clone());
+                    self.stack.push(x);
+                    self.stack.push(x);
+                    entry_buffer = number_to_string(self.stack.get_x()).expect("Failed to convert in process_key"); // Takes stack.x and formats it for display
                 }
             E => {//info!("pushed e"); 
                     if !entry_buffer.contains(&('e' as u8)){
@@ -295,8 +208,8 @@ impl Calc {
                     }   
                 }
             UNDERSCORE =>{ entry_buffer.push(b'_').unwrap();
-                            // info!("pushed _");      
-                    }
+                    info!("pushed _");      
+                }
             PLUSMINUS =>{ if entry_buffer.contains(&('e' as u8)){
                             for (p,i) in entry_buffer.clone().into_iter().enumerate(){
                                 if i == 'e' as u8 {
@@ -327,22 +240,53 @@ impl Calc {
             // _ => info!("Number buffer contains {} -  couldn't be cloned", n),
 
             PLUS => { 
-                // Take what is in the entry buffer, add it to what is in the 
-                // bottom of the stack and replace the bottom of the stack
-                // info!("Plus hit, entry buffer contains:");
-                // for key in entry_buffer.clone(){
-                //     info!("{}",key as char);
-                // }
-                let entry = string_to_number(entry_buffer.clone());
-                // info!("entry is: {}", entry);
-                // should still be old value:
-                // info!("old x value is {}", self.stack.x);
-                // stack still contains previous number, so use it:
-                self.stack.pop();
-                self.stack.x = self.stack.x+entry;
-                // info!("updated value is {}", self.stack.x);
-                entry_buffer = number_to_string(self.stack.x).expect("Failed to convert in process_key"); // Takes stack.x and formats it for display
+                if entry_buffer.contains(&('_' as u8)){ // We've been adding a new number
+                    // Take what is in the entry buffer, add it to what is in the 
+                    // bottom of the stack and replace the bottom of the stack
+                    // let x = self.stack.pop();
+                    let x = self.stack.pop(); // need to pop twice as the entry buffer isn't in the stack at this point.
+                    let entry = string_to_number(entry_buffer.clone());
+                    self.stack.push(entry+x);
+                    entry_buffer = number_to_string(self.stack.get_x()).expect("Failed to convert in process_key"); // Takes stack.x and formats it for display
+                info!("x: {}, entry_buffer: {}, entry: {}, ",x, self.stack.get_x(), entry);
+
+
+                } else {
+                    let x = self.stack.pop();
+                    let y = self.stack.pop();
+                    info!("x: {}, y: {}", x, y);
+                    self.stack.push(x+y);
+                    entry_buffer = number_to_string(self.stack.get_x()).expect("Failed to convert in process_key"); 
+                }
             }
+            MINUS => {if entry_buffer.contains(&('_' as u8)){ // We've been adding a new number
+                    // Take what is in the entry buffer, add it to what is in the 
+                    // bottom of the stack and replace the bottom of the stack
+                    let x = self.stack.pop();
+                    let entry = string_to_number(entry_buffer.clone());
+                    self.stack.push(x-entry);
+                    entry_buffer = number_to_string(self.stack.get_x()).expect("Failed to convert in process_key"); // Takes stack.x and formats it for display
+                } else {
+                    let x = self.stack.pop();
+                    let y = self.stack.pop();
+                    self.stack.push(y-x);
+                }
+            }
+            // }
+            // TIMES => { 
+            //     let entry = string_to_number(entry_buffer.clone());
+            //     // info!("entry is: {}", entry);
+            //     self.stack.pop();
+            //     // info!("old x value is {}", self.stack.x);
+            //     self.stack.x = self.stack.x*entry;
+            //     entry_buffer = number_to_string(self.stack.x).expect("Failed to convert in process_key"); // Takes stack.x and formats it for display
+            // }   
+            // DIVIDE => { 
+            //     let entry = string_to_number(entry_buffer.clone());
+            //     self.stack.pop();
+            //     self.stack.x = self.stack.x/entry;
+            //     entry_buffer = number_to_string(self.stack.x).expect("Failed to convert in process_key"); // Takes stack.x and formats it for display
+            // }   
             BACK => {
                 info!("back pressed");
                 if entry_buffer.len()>1{
@@ -350,7 +294,7 @@ impl Calc {
                     info!("* last key: {}", &last_key);
                     if last_key == UNDERSCORE {
                         if entry_buffer.len()>1 {  // If the back key is pressed and there's more than one character in the buffer, pop the last character
-                            let k = entry_buffer.pop();
+                            let _k = entry_buffer.pop();
                             info!("Popped second thing - last key is {}", &last_key);
                             entry_buffer.push(last_key).expect("Failed pushing key in process_key:BACK");
                         } else {
