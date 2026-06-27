@@ -1,23 +1,41 @@
+#![allow(unused_imports)]
 
-#[derive(Copy, Clone)]
+
+use defmt::*;
+
+use heapless::String;
+
+#[derive( Clone)]
 pub struct Stack{
     x: f64,
     y: f64,
     z: f64,
     t: f64,
     changed: bool,
+    x_str: String<64>,
+    y_str: String<64>,
+    z_str: String<64>,
+    t_str: String<64>,
 }
 
 impl Stack {
     pub fn new()-> Stack{
-        Stack { x: 0.0, y: 0.0, z: 0.0, t: 0.0, changed: false}
+        Stack { x: 0.0, 
+            y: 0.0, 
+            z: 0.0, 
+            t: 0.0, 
+            changed: false,
+            x_str: String::try_from("0.000").unwrap(),
+            y_str: String::try_from("0.000").unwrap(),
+            z_str: String::try_from("0.000").unwrap(),
+            t_str: String::try_from("0.000").unwrap(),
+        }
     }
     pub fn push(&mut self, x: f64) {
         self.t = self.z;
         self.z = self.y;
         self.y = self.x;
         self.x = x;
-        // self.x = entry;   /
         self.changed = true;
         // Leaves x in y and in x
     }
@@ -43,6 +61,16 @@ impl Stack {
         (self.x, self.y, self.z, self.t)
     }
 
+    pub fn fetch_strs(&mut self) -> (&str, &str, &str, &str){
+        (&self.x_str, &self.y_str, &self.z_str, &self.t_str)
+    }
+
+    pub fn fill_y_to_t(&mut self, y:f64, z: f64, t:f64){
+        self.y = y;
+        self.z = z;
+        self.t = t;
+    }
+
     pub fn swapxy(&mut self){
         let temp = self.x;
         self.x = self.y;
@@ -55,6 +83,10 @@ impl Stack {
         self.y = new_y;
     }
 
+    pub fn debug(&mut self) {
+        info!("x:{}, y:{}, z:{}, t:{}", self.x, self.y, self.z, self.t);
+    }
+
 
     pub fn get_x(&mut self)->f64{
         return self.x;
@@ -63,24 +95,5 @@ impl Stack {
     pub fn get_y(&mut self)->f64{
         return self.y;
     }
-
-    // pub fn fetch_strs(&mut self) -> (Vec<u8,64>, &str, &str){
-
-    //     let y_str: Vec<u8,64> = number_to_string(self.y).unwrap().clone();
-    //     // let y = string_to_number(y_str);
-
-    // // let y_str = format!("{:e}", self.y).expect("failed to convert number_to_string ");
-    // // let r = y_str.into_bytes();
-   
-        
-
-    //     (y_str, "0.0", "0.0")
-    // }
-
-
-
-    // pub fn print(&mut self) {
-    //     info!("  Y: {}   Z: {}   T: {}", self.y, self.z, self.t);
-    // }
 
 }

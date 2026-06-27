@@ -4,17 +4,10 @@
 
 // use embassy_sync::channel::Channel;
 // use embassy_sync::blocking_mutex::raw::NoopRawMutex;
-
+#![allow(unused_imports)]
 use core::char;
 use core::f64;
-// use core::num;
-// use core::num;
-// use cortex_m::peripheral::nvic;
-// use core::ops::range;
-// use defmt::println; 
-// use embedded_graphics::prelude::*;
-// use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
-use embedded_graphics::mono_font::{ascii::FONT_10X20, MonoTextStyle};
+use embedded_graphics::mono_font::{ascii::FONT_10X20, ascii::FONT_9X18, MonoTextStyle};
 use embedded_graphics::pixelcolor::BinaryColor;
 
 
@@ -117,7 +110,7 @@ impl Calc {
 
     pub unsafe fn new() -> Calc {
 
-        let _style = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
+        let _style = MonoTextStyle::new(&FONT_9X18, BinaryColor::On);
 
         let mut num_buffer = Vec::<u8,64>::new();
         num_buffer.push('_' as u8).expect("Failed to push '_' into num_buffer in Calc::new()");
@@ -148,17 +141,13 @@ impl Calc {
         match key as u8 {
             n @ 0..=9 => {
                         if !entry_buffer.contains(&('_' as u8)) { // We're starting a new number, so clear the buffer and put the _ back in
-                            // info!("Starting new number");
+                            info!("Starting new number");
                             entry_buffer.clear();
-                            // self.stack.push();
                             entry_buffer.push(n+48).expect("failed to push digit into entry_buffer in process_key()");  // Add the digit to the buffer
                             entry_buffer.push('_' as u8).expect("Failed to push '_' into entry_buffer in process_key()");  // Put the _ back in so it shows on the display
 // Need to look at line above and act appropriately
-
+                            self.stack.push(0.0);
 // There's an issue here with, when a new number is started, the number in x should be moved into y.
-
-
-
 
                             self.editing = true;
                         } else {    
@@ -190,7 +179,7 @@ impl Calc {
                 }
             }
             ENTER => { self.editing = false;
-
+                    self.stack.debug();
                     let last = entry_buffer.pop().unwrap();
                     info!("last: {}", last);
                     if last != '_' as u8 {
@@ -198,9 +187,11 @@ impl Calc {
                     }
 
                     let x = string_to_number(entry_buffer.clone());
+                    info!("after enter x = {}",x);
                     self.stack.push(x);
                     self.stack.push(x);
                     entry_buffer = number_to_string(self.stack.get_x()).expect("Failed to convert in process_key"); // Takes stack.x and formats it for display
+                    // info!("entry buffer is {}", &entry_buffer);
                 }
             E => {//info!("pushed e"); 
                     if !entry_buffer.contains(&('e' as u8)){
@@ -245,11 +236,11 @@ impl Calc {
                     // bottom of the stack and replace the bottom of the stack
                     // let x = self.stack.pop();
                     let x = self.stack.pop(); // need to pop twice as the entry buffer isn't in the stack at this point.
+
                     let entry = string_to_number(entry_buffer.clone());
                     self.stack.push(entry+x);
                     entry_buffer = number_to_string(self.stack.get_x()).expect("Failed to convert in process_key"); // Takes stack.x and formats it for display
                 info!("x: {}, entry_buffer: {}, entry: {}, ",x, self.stack.get_x(), entry);
-
 
                 } else {
                     let x = self.stack.pop();
@@ -259,8 +250,8 @@ impl Calc {
                     entry_buffer = number_to_string(self.stack.get_x()).expect("Failed to convert in process_key"); 
                 }
             }
-            MINUS => {if entry_buffer.contains(&('_' as u8)){ // We've been adding a new number
-                    // Take what is in the entry buffer, add it to what is in the 
+            MINUS => {if entry_buffer.contains(&('_' as u8)){ // We've been entering a new number
+                    // Take what is in the entry buffer, subtract it from what is in the 
                     // bottom of the stack and replace the bottom of the stack
                     let x = self.stack.pop();
                     let entry = string_to_number(entry_buffer.clone());
@@ -324,7 +315,12 @@ impl Calc {
         // for editing and then convert it to a String for display and back to a Vec<u8,64> to return it.  
 
         self.num_buffer = entry_buffer.clone(); // Vec<u8>
-
+        info!("Entry buffer:");
+        for a in &entry_buffer{
+            info!("{}",*a as char);
+        }
+        info!("-------------");
+        
         convert_to_string(entry_buffer) // String for display
 
     }    
