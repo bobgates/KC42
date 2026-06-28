@@ -11,7 +11,7 @@ use embassy_rp::gpio::{Input, Level, Pull};
 use embassy_rp::Peripherals;
 use embassy_rp::Peri;
 use embassy_rp::peripherals::*;
-use embassy_rp::spi::{Blocking, Spi};
+use embassy_rp::spi::{Blocking, ClkPin, MisoPin, MosiPin, Spi};
 use embassy_rp::spi;
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
@@ -67,15 +67,22 @@ const T_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 3*LINE_SPACING;
 pub struct Screen<'a> {
 
     display: &'a ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, embassy_rp::peripherals::SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
-    font:   MonoTextStyle<'a, BinaryColor>,
-    stack_names_font:    &'a MonoTextStyle<'a, BinaryColor>,   
-    stack: &'a Stack,
+    //: embedded_graphics::draw_target::DrawTarget&'a ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, embassy_rp::peripherals::SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
+//     font:   MonoTextStyle<'a, BinaryColor>,
+//     stack_names_font:    &'a MonoTextStyle<'a, BinaryColor>,   
+//     stack: &'a mut Stack,
 }
 
-impl Screen<'_> {
+impl<'a> Screen<'a> {
 
     
-    pub fn new()->Screen<'static>{
+    pub fn new(mut self, display :  &'a st7565::ST7565<SPIInterface<SpiDeviceWithConfig<'a, NoopRawMutex, Spi<'a, SPI0, Blocking>, Output<'_>>, Output<'_>>, DOGL128_6, st7565::modes::GraphicsMode<'a, 128, 8>, 128, 64, 8>,
+                    //   mut font : MonoTextStyle<'_, BinaryColor>,
+                    //   mut stack_names_font : &'_ MonoTextStyle<'_, BinaryColor>,
+                    //   mut stack: Stack,
+                    ) -> &'a Screen<'a>
+    {
+        self.display = display;
 
         let p = embassy_rp::init(Default::default());
 
@@ -110,15 +117,15 @@ impl Screen<'_> {
 
         let dfont = MonoTextStyle::new(&main_font, BinaryColor::On);
         let stack_names_font = MonoTextStyle::new(&stack_names_font, BinaryColor::On);
-        let stack = Stack::new();
+        let mut stack = Stack::new();
 
         // display: &display,
 
-        Screen { 
+        &Screen { 
             display: &display,
-            font: dfont,
-            stack_names_font: &stack_names_font,
-            stack: &stack,
+            // font: dfont,
+            // stack_names_font: &stack_names_font,
+            // stack: & mut stack,
         }
     }
 
@@ -129,20 +136,20 @@ impl Screen<'_> {
 
         let x = stack.0;
 
-        self.display.clear(BinaryColor::Off);
-        let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(stack.0, Point::new(NUM_LEFT, X_NUM_BOTTOM), self.font).draw(&mut self.display);
-        let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(stack.1, Point::new(NUM_LEFT, Y_NUM_BOTTOM), self.font).draw(&mut self.display);
-        let _= Text::new("z", Point::new(NAME_LEFT, Z_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(":", Point::new(COLON_LEFT, Z_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(stack.2, Point::new(NUM_LEFT, Z_NUM_BOTTOM), self.font).draw(&mut self.display);
-        let _= Text::new("t", Point::new(NAME_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(":", Point::new(COLON_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(stack.3, Point::new(NUM_LEFT, T_NUM_BOTTOM), self.font).draw(&mut self.display);
-        self.display.flush().unwrap();
+        // self.display.clear(BinaryColor::Off);
+        // let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(self.display);
+        // let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(stack.0, Point::new(NUM_LEFT, X_NUM_BOTTOM), self.font).draw(&mut self.display);
+        // let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(stack.1, Point::new(NUM_LEFT, Y_NUM_BOTTOM), self.font).draw(&mut self.display);
+        // let _= Text::new("z", Point::new(NAME_LEFT, Z_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(":", Point::new(COLON_LEFT, Z_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(stack.2, Point::new(NUM_LEFT, Z_NUM_BOTTOM), self.font).draw(&mut self.display);
+        // let _= Text::new("t", Point::new(NAME_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(":", Point::new(COLON_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(stack.3, Point::new(NUM_LEFT, T_NUM_BOTTOM), self.font).draw(&mut self.display);
+        // self.display.flush().unwrap();
     }
 }
 
